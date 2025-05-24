@@ -13,6 +13,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../../../firebase";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import Logo from "../../assets/images/logo.png";
 
 const RegisterScreen = ({ navigation }) => {
   const [name, setName] = useState("");
@@ -60,9 +61,7 @@ const RegisterScreen = ({ navigation }) => {
     <View style={styles.container}>
       {/* Logo */}
       <Image
-        source={{
-          uri: "https://cdn-icons-png.flaticon.com/512/2919/2919600.png",
-        }}
+        source={Logo}
         style={styles.logo}
       />
       <Text style={styles.title}>Create Account</Text>
@@ -156,10 +155,10 @@ const styles = StyleSheet.create({
     paddingBottom: 150,
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: 150,
+    height: 150,
     alignSelf: "center",
-    marginBottom: 20,
+    resizeMode: "contain",
   },
   title: {
     fontSize: 32,
