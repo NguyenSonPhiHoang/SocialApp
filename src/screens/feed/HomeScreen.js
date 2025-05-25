@@ -11,12 +11,9 @@ import {
   ScrollView,
   Image,
   Animated,
-  Modal,
-  Pressable,
 } from 'react-native';
 import moment from 'moment';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import * as ImagePicker from 'expo-image-picker';
 
 // Skeleton Loading Component with Shimmer Effect
 const SkeletonPost = () => {
@@ -64,30 +61,8 @@ const SkeletonPost = () => {
   );
 };
 
-// Story Viewer Component
-const StoryViewer = ({ story, onClose }) => {
-  return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={true}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.storyViewer}>
-          <Image source={{ uri: story.avatar }} style={styles.fullStoryImage} />
-          <Text style={styles.storyUsername}>{story.username}</Text>
-          <Pressable onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeButtonText}>Close</Text>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
-  );
-};
-
 // Stories Bar Component
-const StoriesBar = ({ onStoryPress }) => {
+const StoriesBar = () => {
   const stories = Array.from({ length: 10 }, (_, index) => ({
     id: `story-${index}`,
     username: `User ${index}`,
@@ -97,20 +72,9 @@ const StoriesBar = ({ onStoryPress }) => {
 
   return (
     <View style={styles.storiesContainer}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false} // Ẩn thanh cuộn ngang
-        scrollEventThrottle={16} // Tối ưu hóa sự kiện cuộn
-        contentContainerStyle={styles.storiesScrollContent} // Kiểm soát nội dung bên trong
-        style={styles.scrollViewStyle} // Áp dụng style để ẩn thanh cuộn
-        bounces={false} // Tắt hiệu ứng kéo quá mức (bouncing) để tránh hiện thanh cuộn
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {stories.map((story) => (
-          <TouchableOpacity
-            key={story.id}
-            style={styles.storyItem}
-            onPress={() => onStoryPress(story)}
-          >
+          <TouchableOpacity key={story.id} style={styles.storyItem}>
             <View style={[styles.storyAvatarContainer, story.isNew && styles.storyAvatarNew]}>
               <Image source={{ uri: story.avatar }} style={styles.storyAvatar} />
               {story.isNew && (
@@ -118,11 +82,7 @@ const StoriesBar = ({ onStoryPress }) => {
                   <View style={styles.storyGradientInner} />
                 </View>
               )}
-              {story.isNew && (
-                <View style={styles.newBadge}>
-                  <Text style={styles.newBadgeText}>New</Text>
-                </View>
-              )}
+              {story.isNew && <View style={styles.newBadge}><Text style={styles.newBadgeText}>New</Text></View>}
             </View>
             <Text style={styles.storyUsername} numberOfLines={1}>
               {story.username}
@@ -137,26 +97,11 @@ const StoriesBar = ({ onStoryPress }) => {
 // Create Post Component
 const CreatePost = ({ onCreatePost }) => {
   const [postText, setPostText] = useState('');
-  const [image, setImage] = useState(null);
-
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
-    }
-  };
 
   const handleSubmit = () => {
-    if (postText.trim() || image) {
-      onCreatePost(postText, image);
+    if (postText.trim()) {
+      onCreatePost(postText);
       setPostText('');
-      setImage(null);
     }
   };
 
@@ -175,13 +120,9 @@ const CreatePost = ({ onCreatePost }) => {
           onChangeText={setPostText}
         />
       </View>
-      <TouchableOpacity style={styles.createPostButton} onPress={pickImage}>
-        <Ionicons name="image-outline" size={20} color="#1877F2" />
-      </TouchableOpacity>
       <TouchableOpacity style={styles.createPostButton} onPress={handleSubmit}>
         <Ionicons name="send" size={20} color="#1877F2" />
       </TouchableOpacity>
-      {image && <Image source={{ uri: image }} style={styles.selectedImage} />}
     </View>
   );
 };
@@ -334,7 +275,6 @@ const HomeScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedStory, setSelectedStory] = useState(null);
 
   // Giả lập API
   const fetchPosts = async (pageNumber) => {
@@ -438,13 +378,13 @@ const HomeScreen = () => {
     );
   };
 
-  const handleCreatePost = (content, image) => {
+  const handleCreatePost = (content) => {
     const newPost = {
       id: `post-${Date.now()}`,
       username: 'Current User',
       avatar: 'https://randomuser.me/api/portraits/thumb/men/1.jpg',
       content,
-      image,
+      image: null,
       createdAt: new Date(),
       likes: 0,
       liked: false,
@@ -453,14 +393,6 @@ const HomeScreen = () => {
       shares: 0,
     };
     setPosts((prevPosts) => [newPost, ...prevPosts]);
-  };
-
-  const handleStoryPress = (story) => {
-    setSelectedStory(story);
-  };
-
-  const closeStoryViewer = () => {
-    setSelectedStory(null);
   };
 
   const renderFooter = () => {
@@ -497,10 +429,10 @@ const HomeScreen = () => {
         <Text style={styles.headerTitle}>DeBug Social</Text>
         <View style={styles.headerIcons}>
           <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="search" size={20} color="#FFF" />
+            <Ionicons name="search" size={24} color="#FFF" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="chatbubbles-outline" size={20} color="#FFF" />
+            <Ionicons name="chatbubbles-outline" size={24} color="#FFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -519,7 +451,7 @@ const HomeScreen = () => {
         }
         ListHeaderComponent={
           <>
-            <StoriesBar onStoryPress={handleStoryPress} />
+            <StoriesBar />
             <CreatePost onCreatePost={handleCreatePost} />
             {isLoading && posts.length === 0 && (
               <View>
@@ -533,7 +465,6 @@ const HomeScreen = () => {
         initialNumToRender={5}
         windowSize={10}
       />
-      {selectedStory && <StoryViewer story={selectedStory} onClose={closeStoryViewer} />}
     </View>
   );
 };
@@ -543,18 +474,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F6FA',
   },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-  },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 8,
-    paddingTop: 30,
+    padding: 12,
+    paddingTop: 40,
     backgroundColor: '#1877F2',
     elevation: 5,
     shadowColor: '#000',
@@ -562,16 +487,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
   },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFF',
+    letterSpacing: 1,
+  },
   headerIcons: {
     flexDirection: 'row',
-    gap: 10,
-    marginLeft: 175,
-    marginRight: 10,
+    gap: 15,
   },
   headerIcon: {
-    padding: 6,
+    padding: 8,
     backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 16,
+    borderRadius: 20,
   },
   storiesContainer: {
     backgroundColor: '#FFFFFF',
@@ -583,27 +512,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 3,
-    overflow: 'hidden',
-    
-  },
-  scrollViewStyle: {
-    overflow: 'hidden', 
-    
-  },
-  storiesScrollContent: {
-    paddingHorizontal: 8, 
-    
-    flexDirection: 'row', 
-    
-    alignItems: 'center', 
-    
   },
   storyItem: {
     alignItems: 'center',
     marginHorizontal: 8,
     width: 85,
-    flexShrink: 1, 
-    
   },
   storyAvatarContainer: {
     width: 75,
@@ -694,12 +607,6 @@ const styles = StyleSheet.create({
   },
   createPostButton: {
     padding: 10,
-  },
-  selectedImage: {
-    width: 100,
-    height: 100,
-    marginTop: 10,
-    borderRadius: 10,
   },
   postContainer: {
     backgroundColor: '#FFFFFF',
@@ -859,34 +766,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 20,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  storyViewer: {
-    width: '80%',
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
-  },
-  fullStoryImage: {
-    width: '100%',
-    height: 300,
-    borderRadius: 10,
-  },
-  closeButton: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#1877F2',
-    borderRadius: 5,
-  },
-  closeButtonText: {
-    color: '#FFF',
-    fontSize: 16,
   },
   skeletonTextLine: {
     height: 10,
