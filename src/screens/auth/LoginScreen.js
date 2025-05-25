@@ -12,6 +12,7 @@ import {
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../../firebase";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import Logo from "../../assets/images/logo.png";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -31,7 +32,6 @@ const LoginScreen = ({ navigation }) => {
     signInWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         const user = userCredential.user;
-        Alert.alert("Login successful!", `Hello, ${user.email}`);
         setIsLoading(false);
         setErrorMessage("");
       })
@@ -40,6 +40,7 @@ const LoginScreen = ({ navigation }) => {
         setIsLoading(false);
         Alert.alert("Login failed!", error.message);
       });
+      navigation.replace("HomeTabs");
   };
 
   const togglePasswordVisibility = () => {
@@ -50,9 +51,7 @@ const LoginScreen = ({ navigation }) => {
     <View style={styles.container}>
       {/* Logo */}
       <Image
-        source={{
-          uri: "https://cdn-icons-png.flaticon.com/512/2919/2919600.png",
-        }}
+        source={Logo}
         style={styles.logo}
       />
       <Text style={styles.title}>Welcome Back!</Text>
@@ -136,10 +135,10 @@ const styles = StyleSheet.create({
     
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: 150,
+    height: 150,
     alignSelf: "center",
-    marginBottom: 20,
+    resizeMode: "contain",
   },
   title: {
     fontSize: 32,
