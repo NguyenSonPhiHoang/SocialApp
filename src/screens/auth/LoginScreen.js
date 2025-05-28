@@ -34,8 +34,7 @@ const LoginScreen = ({ navigation }) => {
       <View style={styles.inputContainer}>
         {/* Email input */}
         <View style={styles.inputWrapper}>
-          <MaterialIcons name="mail" size={24} color="#777" style={styles.icon} />
-          <TextInput
+          <MaterialIcons name="mail" size={24} color="#777" style={styles.icon} />          <TextInput
             placeholder="Email"
             placeholderTextColor="#999"
             value={email}
@@ -48,8 +47,7 @@ const LoginScreen = ({ navigation }) => {
 
         {/* Password input */}
         <View style={styles.inputWrapper}>
-          <MaterialIcons name="lock" size={24} color="#777" style={styles.icon} />
-          <TextInput
+          <MaterialIcons name="lock" size={24} color="#777" style={styles.icon} />          <TextInput
             placeholder="Password"
             placeholderTextColor="#999"
             value={password}

@@ -96,8 +96,7 @@ const ProfileScreen = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Chỉnh sửa thông tin</Text>
-            <TextInput
+            <Text style={styles.modalTitle}>Chỉnh sửa thông tin</Text>            <TextInput
               style={styles.input}
               value={editName}
               onChangeText={setEditName}

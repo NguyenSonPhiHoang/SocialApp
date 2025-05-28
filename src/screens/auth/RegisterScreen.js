@@ -35,8 +35,7 @@ const RegisterScreen = ({ navigation }) => {
       <View style={styles.inputContainer}>
         {/* Name input */}
         <View style={styles.inputWrapper}>
-          <MaterialIcons name="person" size={24} color="#777" style={styles.icon} />
-          <TextInput
+          <MaterialIcons name="person" size={24} color="#777" style={styles.icon} />          <TextInput
             placeholder="Your Name"
             placeholderTextColor="#999"
             value={name}
@@ -48,8 +47,7 @@ const RegisterScreen = ({ navigation }) => {
 
         {/* Email input */}
         <View style={styles.inputWrapper}>
-          <MaterialIcons name="mail" size={24} color="#777" style={styles.icon} />
-          <TextInput
+          <MaterialIcons name="mail" size={24} color="#777" style={styles.icon} />          <TextInput
             placeholder="Email"
             placeholderTextColor="#999"
             value={email}
@@ -62,8 +60,7 @@ const RegisterScreen = ({ navigation }) => {
 
         {/* Password input */}
         <View style={styles.inputWrapper}>
-          <MaterialIcons name="lock" size={24} color="#777" style={styles.icon} />
-          <TextInput
+          <MaterialIcons name="lock" size={24} color="#777" style={styles.icon} />          <TextInput
             placeholder="Password"
             placeholderTextColor="#999"
             value={password}

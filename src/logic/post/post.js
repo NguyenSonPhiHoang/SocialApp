@@ -110,7 +110,11 @@ export const handleSuccessConfirm = ({ setShowSuccessModal, setContent, setImage
   setShowSuccessModal(false);
   setContent('');
   setImages([]);
-  navigation.navigate('Home', { newPost: true });
+  // Navigate to Home with newPost parameter to trigger refresh
+  navigation.navigate('HomeTabs', { 
+    screen: 'Home', 
+    params: { newPost: true } 
+  });
 };
 
 export const animateButton = (scale) => {

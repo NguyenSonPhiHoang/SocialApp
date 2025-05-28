@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import moment from 'moment';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { fetchPosts, handleLike, handleAddComment } from '../../logic/feed/home';
 
 // Skeleton Loading Component with Shimmer Effect
@@ -229,8 +230,7 @@ const PostItem = ({ post, onLike, onAddComment }) => {
             </Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.commentInputContainer}>
-          <TextInput
+        <View style={styles.commentInputContainer}>          <TextInput
             style={styles.commentInput}
             placeholder="Write a comment..."
             placeholderTextColor="#888"
@@ -252,16 +252,52 @@ const HomeScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isTabRefreshing, setIsTabRefreshing] = useState(false);
+  const route = useRoute();
+  const flatListRef = useRef(null);
 
+  // Load posts when component mounts
   useEffect(() => {
     fetchPosts({ setIsLoading, setPosts });
-  }, []);
+  }, []);  // Listen for newPost parameter and refresh data
+  useFocusEffect(
+    useCallback(() => {
+      if (route.params?.newPost) {
+        // Reset the parameter to avoid infinite refresh
+        route.params.newPost = false;
+        // Refresh posts
+        fetchPosts({ setIsLoading, setPosts }).then(() => {
+          // Scroll to top after loading new post
+          setTimeout(() => {
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+          }, 500);
+        });
+      }
+    }, [route.params?.newPost])
+  );  // Listen for tab press refresh
+  useEffect(() => {
+    if (route.params?.refresh) {
+      setIsTabRefreshing(true);
+      fetchPosts({ setIsLoading: () => {}, setPosts }).then(() => {
+        setIsTabRefreshing(false);
+        // Scroll to top after tab refresh
+        setTimeout(() => {
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        }, 300);
+      });
+    }
+  }, [route.params?.refresh]);
 
   const handleLoadMore = () => {};
-
   const onRefresh = () => {
     setRefreshing(true);
-    fetchPosts({ setIsLoading, setPosts }).then(() => setRefreshing(false));
+    fetchPosts({ setIsLoading, setPosts }).then(() => {
+      setRefreshing(false);
+      // Scroll to top after pull to refresh
+      setTimeout(() => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }, 300);
+    });
   };
   
   const handleLikePress = (postId) => {
@@ -272,7 +308,17 @@ const HomeScreen = () => {
     handleAddComment({ postId, text, fadeAnim, setPosts, userName: 'Current User' });
   };
 
-  const renderFooter = () => null;
+  const renderFooter = () => {
+    if (isTabRefreshing && posts.length > 0) {
+      return (
+        <View style={styles.footerLoading}>
+          <ActivityIndicator size="small" color="#1877F2" />
+          <Text style={styles.footerLoadingText}>Đang tải...</Text>
+        </View>
+      );
+    }
+    return null;
+  };
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -290,18 +336,22 @@ const HomeScreen = () => {
     ),
     []
   );
-
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>DeBug Social</Text>
-        <View style={styles.headerIcons}>
-          {/* Icons are wrapped in Text components for consistency */}
+        <Text style={styles.headerTitle}>DeBug Social</Text>        <View style={styles.headerIcons}>
+          {(isLoading || isTabRefreshing) && (
+            <ActivityIndicator 
+              size="small" 
+              color="#FFF" 
+              style={styles.headerLoadingIndicator}
+            />
+          )}
         </View>
-      </View>
-      {/* FlatList */}
+      </View>      {/* FlatList */}
       <FlatList
+        ref={flatListRef}
         data={posts}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
@@ -311,8 +361,7 @@ const HomeScreen = () => {
         ListEmptyComponent={renderEmpty}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1877F2" />
-        }
-        ListHeaderComponent={
+        }ListHeaderComponent={
           <>
             {isLoading && posts.length === 0 && (
               <View>
@@ -353,10 +402,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFF',
     letterSpacing: 1,
-  },
-  headerIcons: {
+  },  headerIcons: {
     flexDirection: 'row',
     gap: 15,
+    alignItems: 'center',
+  },
+  headerLoadingIndicator: {
+    marginLeft: 10,
   },
   headerIcon: {
     padding: 8,
@@ -683,9 +735,20 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#888',
-  },
-  listContent: {
+  },  listContent: {
     paddingBottom: 20,
+  },
+  footerLoading: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  footerLoadingText: {
+    fontSize: 14,
+    color: '#1877F2',
+    fontWeight: '500',
   },
   skeletonTextLine: {
     height: 10,

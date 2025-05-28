@@ -61,8 +61,10 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
         createdAt: data.createdAt ? data.createdAt.toDate && data.createdAt.toDate() : new Date(),
       });    }
     setPosts(posts);
+    return Promise.resolve();
   } catch (error) {
     setPosts([]);
+    return Promise.reject(error);
   } finally {
     setIsLoading(false);
   }
