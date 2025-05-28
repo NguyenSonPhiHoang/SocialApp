@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useTheme } from '../../context/ThemeContext';
 import { handleSave } from '../../logic/profile/profile';
 
 const DUMMY_POSTS = [
@@ -13,6 +14,9 @@ const DUMMY_POSTS = [
 ];
 
 const ProfileScreen = () => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  
   // Dummy user data
   const [user, setUser] = useState({
     name: 'Eytyxia Nguyễn',
@@ -329,6 +333,204 @@ const styles = StyleSheet.create({
   },
   intaPostTitle: {
     color: '#334155',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+});
+
+const getStyles = (colors) => StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  intaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    marginTop: 18,
+    paddingHorizontal: 16,
+    backgroundColor: colors.cardBackground,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.border,
+    paddingBottom: 18,
+  },
+  avatarBorder: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 2.5,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.cardBackground,
+    marginRight: 18,
+  },
+  intaAvatar: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.cardBackground,
+  },
+  intaStatsWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginLeft: 0,
+  },
+  intaStatItem: {
+    alignItems: 'center',
+    minWidth: 60,
+  },
+  intaStatNumber: {
+    fontWeight: 'bold',
+    fontSize: 19,
+    color: colors.text,
+    marginBottom: 1,
+  },
+  intaStatLabel: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    marginTop: 1,
+  },
+  intaNameWrap: {
+    marginBottom: 8,
+    marginLeft: 16,
+    marginTop: 2,
+    backgroundColor: colors.cardBackground,
+  },
+  intaName: {
+    fontWeight: 'bold',
+    fontSize: 17,
+    color: colors.text,
+    marginBottom: 1,
+  },
+  intaEmail: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    marginBottom: 1,
+  },
+  intaBio: {
+    color: colors.text,
+    fontSize: 14,
+    marginTop: 2,
+    marginBottom: 8,
+    maxWidth: '92%',
+  },
+  intaEditBtn: {
+    flexDirection: 'row',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  intaEditBtnText: {
+    color: colors.text,
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '92%',
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 22,
+    alignItems: 'stretch',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 18,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  input: {
+    backgroundColor: colors.inputBackground,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: colors.text,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  saveBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    color: colors.buttonText,
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  cancelBtn: {
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cancelBtnText: {
+    color: colors.text,
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  intaPostCard: {
+    flex: 1,
+    aspectRatio: 1,
+    margin: 2,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: colors.cardBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  intaPostImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  intaPostPlaceholder: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  intaPostTitle: {
+    color: colors.text,
     fontWeight: 'bold',
     fontSize: 16,
   },
