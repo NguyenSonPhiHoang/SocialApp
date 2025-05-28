@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import moment from 'moment';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { fetchPosts, handleLike, handleAddComment, handleShare } from '../../logic/feed/home';
+import { fetchPosts, handleLike, handleAddComment } from '../../logic/feed/home';
 
 // Skeleton Loading Component with Shimmer Effect
 const SkeletonPost = () => {
@@ -83,11 +83,22 @@ const CommentItem = ({ comment, fadeAnim }) => (
 );
 
 // Post Item Component
-const PostItem = ({ post, onLike, onAddComment, onShare }) => {
+const PostItem = ({ post, onLike, onAddComment }) => {
   const [commentText, setCommentText] = useState('');
   const likeScaleAnim = useRef(new Animated.Value(1)).current;
-  const shareScaleAnim = useRef(new Animated.Value(1)).current;
-  const commentFadeAnims = useRef(post.comments.map(() => new Animated.Value(0))).current;
+  const commentFadeAnims = useRef([]).current;
+
+  // Sync commentFadeAnims with current comments
+  useEffect(() => {
+    // Ensure we have animation values for all comments
+    while (commentFadeAnims.length < post.comments.length) {
+      commentFadeAnims.push(new Animated.Value(1));
+    }
+    // Remove excess animation values if comments were removed
+    if (commentFadeAnims.length > post.comments.length) {
+      commentFadeAnims.splice(post.comments.length);
+    }
+  }, [post.comments.length]);
 
   const handleLikePress = () => {
     Animated.sequence([
@@ -104,7 +115,6 @@ const PostItem = ({ post, onLike, onAddComment, onShare }) => {
     ]).start();
     onLike(post.id);
   };
-
   const handleAddComment = () => {
     if (commentText.trim()) {
       const newFadeAnim = new Animated.Value(0);
@@ -119,22 +129,6 @@ const PostItem = ({ post, onLike, onAddComment, onShare }) => {
     }
   };
 
-  const handleShare = () => {
-    Animated.sequence([
-      Animated.timing(shareScaleAnim, {
-        toValue: 1.2,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(shareScaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-    onShare(post.id);
-  };
-
   return (
     <View style={styles.postContainer}>
       <View style={styles.postHeader}>
@@ -143,11 +137,34 @@ const PostItem = ({ post, onLike, onAddComment, onShare }) => {
           <Text style={styles.username}>{post.username}</Text>
           <Text style={styles.timestamp}>{moment(post.createdAt).fromNow()}</Text>
         </View>
-      </View>
-      <Text style={styles.content}>{post.content}</Text>
-      {post.image && (
-        <View style={styles.postImageContainer}>
-          <Image source={{ uri: post.image }} style={styles.postImage} />
+      </View>      <Text style={styles.content}>{post.content}</Text>
+      {post.images && post.images.length > 0 && (
+        <View style={styles.postImagesContainer}>
+          {post.images.length === 1 && (
+            <Image source={{ uri: post.images[0] }} style={styles.postImageSingle} />
+          )}
+          {post.images.length === 2 && (
+            <View style={styles.postImagesTwoContainer}>
+              <Image source={{ uri: post.images[0] }} style={styles.postImageTwo} />
+              <Image source={{ uri: post.images[1] }} style={styles.postImageTwo} />
+            </View>
+          )}
+          {post.images.length >= 3 && (
+            <View style={styles.postImagesThreeContainer}>
+              <Image source={{ uri: post.images[0] }} style={styles.postImageThreeMain} />
+              <View style={styles.postImagesThreeRight}>
+                <Image source={{ uri: post.images[1] }} style={styles.postImageThreeSmall} />
+                <View style={styles.postImageThreeBottomContainer}>
+                  <Image source={{ uri: post.images[2] }} style={styles.postImageThreeSmall} />
+                  {post.images.length > 3 && (
+                    <View style={styles.postImageMoreOverlay}>
+                      <Text style={styles.postImageMoreText}>+{post.images.length - 3}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+          )}
         </View>
       )}
       <View style={styles.postFooter}>
@@ -170,27 +187,19 @@ const PostItem = ({ post, onLike, onAddComment, onShare }) => {
               </TouchableOpacity>
             )}
           </View>
-        )}
-        <View style={styles.actionButtons}>
+        )}        <View style={styles.actionButtons}>
           <TouchableOpacity onPress={handleLikePress}>
             <Animated.View style={[styles.actionButton, styles.actionButtonLike, { transform: [{ scale: likeScaleAnim }] }]}>
               <Ionicons
-                name={post.liked ? 'thumbs-up' : 'thumbs-up-outline'}
+                name={post.liked ? 'heart' : 'heart-outline'}
                 size={20}
-                color={post.liked ? '#1877F2' : '#555'}
+                color={post.liked ? '#FF3040' : '#555'}
               />
-              <Text style={[styles.actionText, post.liked && { color: '#1877F2' }]}>Like</Text>
+              <Text style={[styles.actionText, post.liked && { color: '#FF3040' }]}>Like</Text>
             </Animated.View>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.actionButtonComment]}>
+          </TouchableOpacity>          <TouchableOpacity style={[styles.actionButton, styles.actionButtonComment]}>
             <Ionicons name="chatbubble-outline" size={20} color="#555" />
             <Text style={styles.actionText}>Comment</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleShare}>
-            <Animated.View style={[styles.actionButton, styles.actionButtonShare, { transform: [{ scale: shareScaleAnim }] }]}>
-              <Ionicons name="share-outline" size={20} color={post.shares > 0 ? '#D81B60' : '#555'} />
-              <Text style={[styles.actionText, post.shares > 0 && { color: '#D81B60' }]}>Share</Text>
-            </Animated.View>
           </TouchableOpacity>
         </View>
         <View style={styles.commentInputContainer}>
@@ -233,24 +242,17 @@ const HomeScreen = () => {
   const handleAddCommentPress = (postId, text, fadeAnim) => {
     handleAddComment({ postId, text, fadeAnim, setPosts, userName: 'Current User' });
   };
-  
-  const handleSharePress = (postId) => {
-    handleShare({ postId, setPosts });
-  };
-
-  const renderFooter = () => null;
+    const renderFooter = () => null;
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyText}>No posts available</Text>
     </View>
-  );
-  const renderItem = useCallback(
+  );  const renderItem = useCallback(
     ({ item }) => (
       <PostItem
         post={item}
         onLike={handleLikePress}
         onAddComment={handleAddCommentPress}
-        onShare={handleSharePress}
       />
     ),
     []
@@ -476,10 +478,67 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
     marginBottom: 10,
-  },
-  postImage: {
+  },  postImage: {
     width: '100%',
     height: 280,
+  },
+  // Multiple images layout styles
+  postImagesContainer: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginBottom: 10,
+  },
+  postImageSingle: {
+    width: '100%',
+    height: 280,
+  },
+  postImagesTwoContainer: {
+    flexDirection: 'row',
+    height: 200,
+    gap: 2,
+  },
+  postImageTwo: {
+    flex: 1,
+    height: '100%',
+  },
+  postImagesThreeContainer: {
+    flexDirection: 'row',
+    height: 200,
+    gap: 2,
+  },
+  postImageThreeMain: {
+    flex: 2,
+    height: '100%',
+  },
+  postImagesThreeRight: {
+    flex: 1,
+    height: '100%',
+    gap: 2,
+  },
+  postImageThreeSmall: {
+    width: '100%',
+    flex: 1,
+  },
+  postImageThreeBottomContainer: {
+    position: 'relative',
+    flex: 1,
+  },
+  postImageMoreOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  postImageMoreText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   postFooter: {
     borderTopWidth: 1,
@@ -546,15 +605,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 8,
     borderRadius: 8,
-  },
-  actionButtonLike: {
-    backgroundColor: '#E3F2FD',
-  },
-  actionButtonComment: {
+  },  actionButtonLike: {
+    backgroundColor: '#FFE8EA',
+  },  actionButtonComment: {
     backgroundColor: '#E8F5E9',
-  },
-  actionButtonShare: {
-    backgroundColor: '#F3E5F5',
   },
   actionText: {
     fontSize: 14,

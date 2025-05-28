@@ -1,5 +1,5 @@
 import { db } from '../../../firebase';
-import { collection, getDocs, query, orderBy, doc, getDoc, updateDoc, arrayUnion, increment, arrayRemove } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, getDoc, updateDoc, arrayUnion, increment, arrayRemove, serverTimestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 export const fetchPosts = async ({ setIsLoading, setPosts }) => {
@@ -20,9 +20,7 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
             avatar: u.avatar || '',
             email: u.email || '',
           };        }
-      }
-
-      // Process comments to include user info
+      }      // Process comments to include user info
       const processedComments = [];
       if (data.comments && data.comments.length > 0) {
         for (const comment of data.comments) {
@@ -36,19 +34,22 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
                 avatar: cu.avatar || '',
               };
             }
-          }
-          processedComments.push({
+          }          processedComments.push({
             ...comment,
             username: commentUserInfo.name || comment.username || 'Unknown User',
             avatar: commentUserInfo.avatar || comment.avatar,
+            createdAt: comment.createdAt ? 
+              (comment.createdAt.toDate ? comment.createdAt.toDate() : 
+               comment.createdAt instanceof Date ? comment.createdAt : 
+               new Date(comment.createdAt)) : 
+              new Date(),
           });
         }
-      }
-
-      posts.push({
+      }      posts.push({
         id: docSnap.id,
         ...data,
-        image: data.images && data.images.length > 0 ? data.images[0] : null,
+        images: data.images || [],
+        image: data.images && data.images.length > 0 ? data.images[0] : null, // Keep for backward compatibility
         avatar: userInfo.avatar || '',
         username: userInfo.name || data.userName || data.userEmail || 'Unknown',
         userEmail: userInfo.email || data.userEmail || '',
@@ -58,8 +59,7 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
         liked: data.likedBy && data.likedBy.includes(getAuth().currentUser?.uid) || false,
         shares: data.shares || 0,
         createdAt: data.createdAt ? data.createdAt.toDate && data.createdAt.toDate() : new Date(),
-      });
-    }
+      });    }
     setPosts(posts);
   } catch (error) {
     setPosts([]);
@@ -177,19 +177,18 @@ export const handleAddComment = async ({ postId, text, fadeAnim, setPosts, userN
       currentUserInfo = {
         name: userData.name || '',
         avatar: userData.avatar || '',
-      };
-    }
+      };    }
   } catch (error) {
     console.error('Error fetching user info:', error);
-  }
-
+  }const timestamp = Date.now();
+  
   const newComment = {
-    id: `${currentUser.uid}-${Date.now()}`,
+    id: `${currentUser.uid}-${timestamp}`,
     userId: currentUser.uid,
     username: currentUserInfo.name || userName || currentUser.displayName || currentUser.email || 'Unknown User',
     avatar: currentUserInfo.avatar || '',
     text: text.trim(),
-    createdAt: new Date(),
+    createdAt: new Date(timestamp),
   };
 
   // Optimistic update
@@ -202,14 +201,11 @@ export const handleAddComment = async ({ postId, text, fadeAnim, setPosts, userN
           }
         : post
     )
-  );
-
-  try {
+  );  try {
     const postRef = doc(db, 'feeds', postId);
     await updateDoc(postRef, {
       comments: arrayUnion(newComment),
-    });
-  } catch (error) {
+    });  } catch (error) {
     // Revert optimistic update on error
     setPosts((prevPosts) =>
       prevPosts.map((post) =>
@@ -221,17 +217,6 @@ export const handleAddComment = async ({ postId, text, fadeAnim, setPosts, userN
           : post
       )
     );
-    console.error('Error adding comment:', error);
   }
-};
-
-export const handleShare = ({ postId, setPosts }) => {
-  setPosts((prevPosts) =>
-    prevPosts.map((post) =>
-      post.id === postId
-        ? { ...post, shares: post.shares + 1 }
-        : post
-    )
-  );
 };
 
