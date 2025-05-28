@@ -1,28 +1,43 @@
-// Home feed logic
-export const fetchPosts = async ({ pageNumber, setIsLoading, setPosts, setHasMore }) => {
+import { db } from '../../../firebase';
+import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
+
+export const fetchPosts = async ({ setIsLoading, setPosts }) => {
+  setIsLoading(true);
   try {
-    setIsLoading(true);
-    const mockPosts = Array.from({ length: 10 }, (_, index) => ({
-      id: `${pageNumber}-${index}`,
-      username: `User ${pageNumber}-${index}`,
-      avatar: `https://randomuser.me/api/portraits/thumb/men/${pageNumber + index}.jpg`,
-      content: `This is a sample post for item ${pageNumber}-${index}. Enjoy the social app!`,
-      image: index % 2 === 0 ? `https://picsum.photos/400/300?random=${pageNumber + index}` : null,
-      createdAt: new Date(Date.now() - (pageNumber * 10 + index) * 3600000),
-      likes: Math.floor(Math.random() * 100),
-      liked: false,
-      comments: [],
-      likedUsers: [`Friend ${index + 1}`, `Friend ${index + 2}`, `Friend ${index + 3}`],
-      shares: 0,
-    }));
-    const sortedPosts = mockPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    if (mockPosts.length === 0) {
-      setHasMore(false);
-    } else {
-      setPosts((prevPosts) => [...prevPosts, ...sortedPosts]);
+    const q = query(collection(db, 'feeds'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    const posts = [];
+    for (const docSnap of querySnapshot.docs) {
+      const data = docSnap.data();
+      let userInfo = { name: '', avatar: '', email: '' };
+      if (data.userId) {
+        const userDoc = await getDoc(doc(db, 'users', data.userId));
+        if (userDoc.exists()) {
+          const u = userDoc.data();
+          userInfo = {
+            name: u.name || '',
+            avatar: u.avatar || '',
+            email: u.email || '',
+          };
+        }
+      }
+      posts.push({
+        id: docSnap.id,
+        ...data,
+        image: data.images && data.images.length > 0 ? data.images[0] : null,
+        avatar: userInfo.avatar || '',
+        username: userInfo.name || data.userName || data.userEmail || 'Unknown',
+        userEmail: userInfo.email || data.userEmail || '',
+        comments: data.comments || [],
+        likes: data.likes || 0,
+        liked: data.liked || false,
+        shares: data.shares || 0,
+        createdAt: data.createdAt ? data.createdAt.toDate && data.createdAt.toDate() : new Date(),
+      });
     }
+    setPosts(posts);
   } catch (error) {
-    console.error('Error fetching posts:', error);
+    setPosts([]);
   } finally {
     setIsLoading(false);
   }

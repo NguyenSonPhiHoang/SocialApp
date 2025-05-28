@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import moment from 'moment';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { fetchPosts } from '../../logic/feed/home';
 
 // Skeleton Loading Component with Shimmer Effect
 const SkeletonPost = () => {
@@ -211,16 +212,15 @@ const HomeScreen = () => {
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // XÓA TOÀN BỘ LOGIC GIẢ LẬP DỮ LIỆU LOCAL
-  // Khi tích hợp Firebase, bạn sẽ fetch dữ liệu thật ở đây
-
   useEffect(() => {
-    // Để trống, hoặc fetch từ Firebase sau này
+    fetchPosts({ setIsLoading, setPosts });
   }, []);
 
-  // Dummy handlers giữ lại để không lỗi, sẽ thay bằng logic Firebase sau
   const handleLoadMore = () => {};
-  const onRefresh = () => {};
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchPosts({ setIsLoading, setPosts }).then(() => setRefreshing(false));
+  };
   const handleLike = () => {};
   const handleAddComment = () => {};
   const handleShare = () => {};
