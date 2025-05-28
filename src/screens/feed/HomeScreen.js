@@ -62,7 +62,6 @@ const SkeletonPost = () => {
   );
 };
 
-
 // Comment Item Component
 const CommentItem = ({ comment, fadeAnim }) => (
   <Animated.View style={[styles.commentContainer, { opacity: fadeAnim }]}>
@@ -88,6 +87,7 @@ const CommentItem = ({ comment, fadeAnim }) => (
 // Post Item Component
 const PostItem = ({ post, onLike, onAddComment }) => {
   const [commentText, setCommentText] = useState('');
+  const [showAllComments, setShowAllComments] = useState(false);
   const likeScaleAnim = useRef(new Animated.Value(1)).current;
   const commentFadeAnims = useRef([]).current;
 
@@ -118,6 +118,7 @@ const PostItem = ({ post, onLike, onAddComment }) => {
     ]).start();
     onLike(post.id);
   };
+
   const handleAddComment = () => {
     if (commentText.trim()) {
       const newFadeAnim = new Animated.Value(0);
@@ -192,7 +193,7 @@ const PostItem = ({ post, onLike, onAddComment }) => {
               <Text>{' '}</Text>
               <Text>{post.comments.length === 1 ? 'Comment' : 'Comments'}</Text>
             </Text>
-            {post.comments.slice(0, 3).map((comment, index) => (
+            {(showAllComments ? post.comments : post.comments.slice(0, 3)).map((comment, index) => (
               <CommentItem
                 key={comment.id}
                 comment={comment}
@@ -200,8 +201,10 @@ const PostItem = ({ post, onLike, onAddComment }) => {
               />
             ))}
             {post.comments.length > 3 && (
-              <TouchableOpacity>
-                <Text style={styles.viewMoreComments}>View more comments</Text>
+              <TouchableOpacity onPress={() => setShowAllComments(!showAllComments)}>
+                <Text style={styles.viewMoreComments}>
+                  {showAllComments ? 'Hide comments' : 'View more comments'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -253,7 +256,9 @@ const HomeScreen = () => {
   useEffect(() => {
     fetchPosts({ setIsLoading, setPosts });
   }, []);
+
   const handleLoadMore = () => {};
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchPosts({ setIsLoading, setPosts }).then(() => setRefreshing(false));
@@ -266,12 +271,16 @@ const HomeScreen = () => {
   const handleAddCommentPress = (postId, text, fadeAnim) => {
     handleAddComment({ postId, text, fadeAnim, setPosts, userName: 'Current User' });
   };
-    const renderFooter = () => null;
+
+  const renderFooter = () => null;
+
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyText}>No posts available</Text>
     </View>
-  );  const renderItem = useCallback(
+  );
+
+  const renderItem = useCallback(
     ({ item }) => (
       <PostItem
         post={item}
@@ -504,7 +513,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
     marginBottom: 10,
-  },  postImage: {
+  },
+  postImage: {
     width: '100%',
     height: 280,
   },
@@ -598,7 +608,8 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     marginRight: 8,
-  },  commentContent: {
+  },
+  commentContent: {
     flex: 1,
   },
   commentUsername: {
@@ -631,9 +642,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 8,
     borderRadius: 8,
-  },  actionButtonLike: {
+  },
+  actionButtonLike: {
     backgroundColor: '#FFE8EA',
-  },  actionButtonComment: {
+  },
+  actionButtonComment: {
     backgroundColor: '#E8F5E9',
   },
   actionText: {
