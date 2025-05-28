@@ -62,7 +62,6 @@ const SkeletonPost = () => {
   );
 };
 
-
 // Comment Item Component
 const CommentItem = ({ comment, fadeAnim }) => (
   <Animated.View style={[styles.commentContainer, { opacity: fadeAnim }]}>
@@ -71,12 +70,15 @@ const CommentItem = ({ comment, fadeAnim }) => (
       style={styles.commentAvatar}
     />
     <View style={styles.commentContent}>
-      <Text style={styles.commentText}>
-        <Text style={styles.commentUsername}>{comment.username}: </Text>
-        {comment.text}
-      </Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+        <Text style={styles.commentUsername}>
+          <Text>{comment.username}</Text>
+          <Text>: </Text>
+        </Text>
+        <Text style={styles.commentText}>{comment.text}</Text>
+      </View>
       <Text style={styles.commentTime}>
-        {comment.createdAt ? moment(comment.createdAt).fromNow() : 'now'}
+        <Text>{comment.createdAt ? moment(comment.createdAt).fromNow() : 'now'}</Text>
       </Text>
     </View>
   </Animated.View>
@@ -116,6 +118,7 @@ const PostItem = ({ post, onLike, onAddComment }) => {
     ]).start();
     onLike(post.id);
   };
+
   const handleAddComment = () => {
     if (commentText.trim()) {
       const newFadeAnim = new Animated.Value(0);
@@ -135,10 +138,17 @@ const PostItem = ({ post, onLike, onAddComment }) => {
       <View style={styles.postHeader}>
         <Image source={{ uri: post.avatar }} style={styles.postAvatar} />
         <View>
-          <Text style={styles.username}>{post.username}</Text>
-          <Text style={styles.timestamp}>{moment(post.createdAt).fromNow()}</Text>
+          <Text style={styles.username}>
+            <Text>{post.username}</Text>
+          </Text>
+          <Text style={styles.timestamp}>
+            <Text>{moment(post.createdAt).fromNow()}</Text>
+          </Text>
         </View>
-      </View>      <Text style={styles.content}>{post.content}</Text>
+      </View>
+      <Text style={styles.content}>
+        <Text>{post.content}</Text>
+      </Text>
       {post.images && post.images.length > 0 && (
         <View style={styles.postImagesContainer}>
           {post.images.length === 1 && (
@@ -156,9 +166,12 @@ const PostItem = ({ post, onLike, onAddComment }) => {
               <View style={styles.postImagesThreeRight}>
                 <Image source={{ uri: post.images[1] }} style={styles.postImageThreeSmall} />
                 <View style={styles.postImageThreeBottomContainer}>
-                  <Image source={{ uri: post.images[2] }} style={styles.postImageThreeSmall} />                  {post.images.length > 3 && (
+                  <Image source={{ uri: post.images[2] }} style={styles.postImageThreeSmall} />
+                  {post.images.length > 3 && (
                     <View style={styles.postImageMoreOverlay}>
-                      <Text style={styles.postImageMoreText}>{`+${post.images.length - 3}`}</Text>
+                      <Text style={styles.postImageMoreText}>
+                        <Text>+{post.images.length - 3}</Text>
+                      </Text>
                     </View>
                   )}
                 </View>
@@ -168,10 +181,17 @@ const PostItem = ({ post, onLike, onAddComment }) => {
         </View>
       )}
       <View style={styles.postFooter}>
-        <Text style={styles.likes}>{`${post.likes} ${post.likes === 1 ? 'Like' : 'Likes'}`}</Text>
+        <Text style={styles.likes}>
+          <Text>{post.likes}</Text>
+          <Text>{' '}</Text>
+          <Text>{post.likes === 1 ? 'Like' : 'Likes'}</Text>
+        </Text>
         {post.comments.length > 0 && (
-          <View style={styles.commentsSection}>            <Text style={styles.commentCount}>
-              {`${post.comments.length} ${post.comments.length === 1 ? 'Comment' : 'Comments'}`}
+          <View style={styles.commentsSection}>
+            <Text style={styles.commentCount}>
+              <Text>{post.comments.length}</Text>
+              <Text>{' '}</Text>
+              <Text>{post.comments.length === 1 ? 'Comment' : 'Comments'}</Text>
             </Text>
             {(showAllComments ? post.comments : post.comments.slice(0, 3)).map((comment, index) => (
               <CommentItem
@@ -188,7 +208,8 @@ const PostItem = ({ post, onLike, onAddComment }) => {
               </TouchableOpacity>
             )}
           </View>
-        )}        <View style={styles.actionButtons}>
+        )}
+        <View style={styles.actionButtons}>
           <TouchableOpacity onPress={handleLikePress}>
             <Animated.View style={[styles.actionButton, styles.actionButtonLike, { transform: [{ scale: likeScaleAnim }] }]}>
               <Ionicons
@@ -196,11 +217,16 @@ const PostItem = ({ post, onLike, onAddComment }) => {
                 size={20}
                 color={post.liked ? '#FF3040' : '#555'}
               />
-              <Text style={[styles.actionText, post.liked && { color: '#FF3040' }]}>Like</Text>
+              <Text style={[styles.actionText, post.liked && { color: '#FF3040' }]}>
+                <Text>Like</Text>
+              </Text>
             </Animated.View>
-          </TouchableOpacity>          <TouchableOpacity style={[styles.actionButton, styles.actionButtonComment]}>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionButton, styles.actionButtonComment]}>
             <Ionicons name="chatbubble-outline" size={20} color="#555" />
-            <Text style={styles.actionText}>Comment</Text>
+            <Text style={styles.actionText}>
+              <Text>Comment</Text>
+            </Text>
           </TouchableOpacity>
         </View>
         <View style={styles.commentInputContainer}>
@@ -230,7 +256,9 @@ const HomeScreen = () => {
   useEffect(() => {
     fetchPosts({ setIsLoading, setPosts });
   }, []);
+
   const handleLoadMore = () => {};
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchPosts({ setIsLoading, setPosts }).then(() => setRefreshing(false));
@@ -243,12 +271,16 @@ const HomeScreen = () => {
   const handleAddCommentPress = (postId, text, fadeAnim) => {
     handleAddComment({ postId, text, fadeAnim, setPosts, userName: 'Current User' });
   };
-    const renderFooter = () => null;
+
+  const renderFooter = () => null;
+
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyText}>No posts available</Text>
     </View>
-  );  const renderItem = useCallback(
+  );
+
+  const renderItem = useCallback(
     ({ item }) => (
       <PostItem
         post={item}
@@ -264,7 +296,9 @@ const HomeScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>DeBug Social</Text>
-        <View style={styles.headerIcons}></View>
+        <View style={styles.headerIcons}>
+          {/* Icons are wrapped in Text components for consistency */}
+        </View>
       </View>
       {/* FlatList */}
       <FlatList
@@ -479,7 +513,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
     marginBottom: 10,
-  },  postImage: {
+  },
+  postImage: {
     width: '100%',
     height: 280,
   },
@@ -573,7 +608,8 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     marginRight: 8,
-  },  commentContent: {
+  },
+  commentContent: {
     flex: 1,
   },
   commentUsername: {
@@ -606,9 +642,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 8,
     borderRadius: 8,
-  },  actionButtonLike: {
+  },
+  actionButtonLike: {
     backgroundColor: '#FFE8EA',
-  },  actionButtonComment: {
+  },
+  actionButtonComment: {
     backgroundColor: '#E8F5E9',
   },
   actionText: {

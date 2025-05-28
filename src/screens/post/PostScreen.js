@@ -91,6 +91,7 @@ export default function PostScreen() {
                     >
                       <Icon name="close" size={18} color="#FFF" />
                     </TouchableOpacity>
+                    {/* Nếu muốn hiển thị tên file ảnh hoặc số thứ tự, hãy bọc text trong <Text> tại đây */}
                   </View>
                 </TouchableOpacity>
               )}
