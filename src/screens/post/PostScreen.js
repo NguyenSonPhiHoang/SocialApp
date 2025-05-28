@@ -65,7 +65,7 @@ export default function PostScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Nội dung bài viết */}
+          {/* Nội dung bài viết */}          
           <TextInput
             style={styles.input}
             placeholder="Hôm nay bạn thấy thế nào?"

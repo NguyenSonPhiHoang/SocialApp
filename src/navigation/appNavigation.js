@@ -13,6 +13,12 @@ export default function AppNavigation() {
         name="Home"
         component={HomeScreen}
         options={{ headerShown: false }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Refresh Home screen when tab is pressed
+            navigation.navigate('Home', { refresh: Date.now() });
+          },
+        })}
       />
       <Tab.Screen
         name="Post"
