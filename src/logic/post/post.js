@@ -84,8 +84,7 @@ export const handlePost = async ({ content, images, selectedPrivacy, setIsLoadin
         const url = await getDownloadURL(storageRef);
         imageUrls.push(url);
       }
-    }
-    // Save post to Firestore
+    }    // Save post to Firestore
     await addDoc(collection(db, 'feeds'), {
       userId: user.uid,
       userEmail: user.email,
@@ -95,7 +94,7 @@ export const handlePost = async ({ content, images, selectedPrivacy, setIsLoadin
       privacy: selectedPrivacy.id,
       createdAt: serverTimestamp(),
       likes: 0,
-      liked: false,
+      likedBy: [],
       comments: [],
       shares: 0,
     });

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import moment from 'moment';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { fetchPosts } from '../../logic/feed/home';
+import { fetchPosts, handleLike, handleAddComment, handleShare } from '../../logic/feed/home';
 
 // Skeleton Loading Component with Shimmer Effect
 const SkeletonPost = () => {
@@ -67,12 +67,17 @@ const SkeletonPost = () => {
 const CommentItem = ({ comment, fadeAnim }) => (
   <Animated.View style={[styles.commentContainer, { opacity: fadeAnim }]}>
     <Image
-      source={{ uri: 'https://randomuser.me/api/portraits/thumb/men/1.jpg' }}
+      source={{ uri: comment.avatar || 'https://randomuser.me/api/portraits/thumb/men/1.jpg' }}
       style={styles.commentAvatar}
     />
     <View style={styles.commentContent}>
-      <Text style={styles.commentUsername}>{comment.username}: </Text>
-      <Text style={styles.commentText}>{comment.text}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+        <Text style={styles.commentUsername}>{comment.username}: </Text>
+        <Text style={styles.commentText}>{comment.text}</Text>
+      </View>
+      <Text style={styles.commentTime}>
+        {comment.createdAt ? moment(comment.createdAt).fromNow() : 'now'}
+      </Text>
     </View>
   </Animated.View>
 );
@@ -215,15 +220,23 @@ const HomeScreen = () => {
   useEffect(() => {
     fetchPosts({ setIsLoading, setPosts });
   }, []);
-
   const handleLoadMore = () => {};
   const onRefresh = () => {
     setRefreshing(true);
     fetchPosts({ setIsLoading, setPosts }).then(() => setRefreshing(false));
   };
-  const handleLike = () => {};
-  const handleAddComment = () => {};
-  const handleShare = () => {};
+  
+  const handleLikePress = (postId) => {
+    handleLike({ postId, setPosts });
+  };
+  
+  const handleAddCommentPress = (postId, text, fadeAnim) => {
+    handleAddComment({ postId, text, fadeAnim, setPosts, userName: 'Current User' });
+  };
+  
+  const handleSharePress = (postId) => {
+    handleShare({ postId, setPosts });
+  };
 
   const renderFooter = () => null;
   const renderEmpty = () => (
@@ -231,14 +244,13 @@ const HomeScreen = () => {
       <Text style={styles.emptyText}>No posts available</Text>
     </View>
   );
-
   const renderItem = useCallback(
     ({ item }) => (
       <PostItem
         post={item}
-        onLike={handleLike}
-        onAddComment={handleAddComment}
-        onShare={handleShare}
+        onLike={handleLikePress}
+        onAddComment={handleAddCommentPress}
+        onShare={handleSharePress}
       />
     ),
     []
@@ -501,9 +513,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     marginRight: 8,
-  },
-  commentContent: {
-    flexDirection: 'row',
+  },  commentContent: {
     flex: 1,
   },
   commentUsername: {
@@ -515,6 +525,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#333',
     flex: 1,
+  },
+  commentTime: {
+    fontSize: 11,
+    color: '#888',
+    marginTop: 2,
   },
   viewMoreComments: {
     fontSize: 13,

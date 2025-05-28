@@ -1,5 +1,6 @@
 import { db } from '../../../firebase';
-import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, doc, getDoc, updateDoc, arrayUnion, increment, arrayRemove } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 export const fetchPosts = async ({ setIsLoading, setPosts }) => {
   setIsLoading(true);
@@ -18,9 +19,32 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
             name: u.name || '',
             avatar: u.avatar || '',
             email: u.email || '',
-          };
+          };        }
+      }
+
+      // Process comments to include user info
+      const processedComments = [];
+      if (data.comments && data.comments.length > 0) {
+        for (const comment of data.comments) {
+          let commentUserInfo = { name: '', avatar: '' };
+          if (comment.userId) {
+            const commentUserDoc = await getDoc(doc(db, 'users', comment.userId));
+            if (commentUserDoc.exists()) {
+              const cu = commentUserDoc.data();
+              commentUserInfo = {
+                name: cu.name || '',
+                avatar: cu.avatar || '',
+              };
+            }
+          }
+          processedComments.push({
+            ...comment,
+            username: commentUserInfo.name || comment.username || 'Unknown User',
+            avatar: commentUserInfo.avatar || comment.avatar,
+          });
         }
       }
+
       posts.push({
         id: docSnap.id,
         ...data,
@@ -28,9 +52,10 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
         avatar: userInfo.avatar || '',
         username: userInfo.name || data.userName || data.userEmail || 'Unknown',
         userEmail: userInfo.email || data.userEmail || '',
-        comments: data.comments || [],
+        comments: processedComments,
         likes: data.likes || 0,
-        liked: data.liked || false,
+        likedBy: data.likedBy || [],
+        liked: data.likedBy && data.likedBy.includes(getAuth().currentUser?.uid) || false,
         shares: data.shares || 0,
         createdAt: data.createdAt ? data.createdAt.toDate && data.createdAt.toDate() : new Date(),
       });
@@ -59,42 +84,145 @@ export const onRefresh = ({ setRefreshing, setPosts, setPage, setHasMore, fetchP
   fetchPosts(1).then(() => setRefreshing(false));
 };
 
-export const handleLike = ({ postId, setPosts }) => {
+export const handleLike = async ({ postId, setPosts }) => {
+  const auth = getAuth();
+  const currentUserId = auth.currentUser?.uid;
+  
+  if (!currentUserId) {
+    return;
+  }
+
+  // Optimistic update
   setPosts((prevPosts) =>
-    prevPosts.map((post) =>
-      post.id === postId
-        ? {
-            ...post,
-            liked: !post.liked,
-            likes: post.liked ? post.likes - 1 : post.likes + 1,
-            likedUsers: post.liked
-              ? post.likedUsers.filter((user) => user !== 'Current User')
-              : [...post.likedUsers, 'Current User'],
-          }
-        : post
-    )
+    prevPosts.map((post) => {
+      if (post.id === postId) {
+        const isCurrentlyLiked = post.likedBy.includes(currentUserId);
+        const newLikedBy = isCurrentlyLiked 
+          ? post.likedBy.filter(uid => uid !== currentUserId)
+          : [...post.likedBy, currentUserId];
+        
+        return {
+          ...post,
+          liked: !isCurrentlyLiked,
+          likes: newLikedBy.length,
+          likedBy: newLikedBy,
+        };
+      }
+      return post;
+    })
   );
+
+  try {
+    const postRef = doc(db, 'feeds', postId);
+    
+    // Get current post data to check if user already liked
+    const postDoc = await getDoc(postRef);
+    if (postDoc.exists()) {
+      const postData = postDoc.data();
+      const likedBy = postData.likedBy || [];
+      const isLiked = likedBy.includes(currentUserId);
+      
+      if (isLiked) {
+        // Remove like
+        await updateDoc(postRef, {
+          likedBy: arrayRemove(currentUserId),
+          likes: increment(-1),
+        });
+      } else {
+        // Add like
+        await updateDoc(postRef, {
+          likedBy: arrayUnion(currentUserId),
+          likes: increment(1),
+        });
+      }
+    }
+  } catch (error) {
+    // Revert optimistic update on error
+    setPosts((prevPosts) =>
+      prevPosts.map((post) => {
+        if (post.id === postId) {
+          const isCurrentlyLiked = post.likedBy.includes(currentUserId);
+          const newLikedBy = isCurrentlyLiked 
+            ? post.likedBy.filter(uid => uid !== currentUserId)
+            : [...post.likedBy, currentUserId];
+          
+          return {
+            ...post,
+            liked: !isCurrentlyLiked,
+            likes: newLikedBy.length,
+            likedBy: newLikedBy,
+          };
+        }
+        return post;
+      })
+    );
+    console.error('Error updating like:', error);
+  }
 };
 
-export const handleAddComment = ({ postId, text, fadeAnim, setPosts }) => {
+export const handleAddComment = async ({ postId, text, fadeAnim, setPosts, userName }) => {
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
+  
+  if (!currentUser || !text.trim()) {
+    return;
+  }
+
+  // Get current user info from Firestore
+  let currentUserInfo = { name: '', avatar: '' };
+  try {
+    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      currentUserInfo = {
+        name: userData.name || '',
+        avatar: userData.avatar || '',
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching user info:', error);
+  }
+
+  const newComment = {
+    id: `${currentUser.uid}-${Date.now()}`,
+    userId: currentUser.uid,
+    username: currentUserInfo.name || userName || currentUser.displayName || currentUser.email || 'Unknown User',
+    avatar: currentUserInfo.avatar || '',
+    text: text.trim(),
+    createdAt: new Date(),
+  };
+
+  // Optimistic update
   setPosts((prevPosts) =>
     prevPosts.map((post) =>
       post.id === postId
         ? {
             ...post,
-            comments: [
-              ...post.comments,
-              {
-                id: `${postId}-${post.comments.length}`,
-                username: 'Current User',
-                text,
-                createdAt: new Date(),
-              },
-            ],
+            comments: [...post.comments, newComment],
           }
         : post
     )
   );
+
+  try {
+    const postRef = doc(db, 'feeds', postId);
+    await updateDoc(postRef, {
+      comments: arrayUnion(newComment),
+    });
+  } catch (error) {
+    // Revert optimistic update on error
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              comments: post.comments.filter(comment => comment.id !== newComment.id),
+            }
+          : post
+      )
+    );
+    console.error('Error adding comment:', error);
+  }
 };
 
 export const handleShare = ({ postId, setPosts }) => {
