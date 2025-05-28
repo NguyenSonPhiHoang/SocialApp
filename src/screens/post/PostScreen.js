@@ -20,6 +20,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useTheme } from '../../context/ThemeContext';
 import {
   pickImages,
   takePhoto,
@@ -46,6 +47,9 @@ export default function PostScreen() {
   const [selectedImage, setSelectedImage] = useState(null);
   const navigation = useNavigation();
   const scalePost = useRef(new Animated.Value(1)).current;
+  const { colors } = useTheme();
+
+  const styles = getStyles(colors);
 
   return (
     <KeyboardAvoidingView
@@ -57,19 +61,17 @@ export default function PostScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.card}>
-          {/* Header */}
-          <View style={styles.header}>
+          {/* Header */}          <View style={styles.header}>
             <Text style={styles.headerText}>Tạo bài viết</Text>
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Icon name="close" size={24} color="#9CA3AF" />
+              <Icon name="close" size={24} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
 
-          {/* Nội dung bài viết */}          
-          <TextInput
+          {/* Nội dung bài viết */}            <TextInput
             style={styles.input}
             placeholder="Hôm nay bạn thấy thế nào?"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={colors.placeholder}
             multiline
             value={content}
             onChangeText={setContent}
@@ -102,15 +104,14 @@ export default function PostScreen() {
             />
           )}
 
-          {/* Các nút chọn ảnh */}
-          <View style={styles.buttonRow}>
+          {/* Các nút chọn ảnh */}          <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.addImageButton} onPress={() => pickImages(setImages)}>
-              <Icon name="photo-library" size={20} color="#2563EB" />
+              <Icon name="photo-library" size={20} color={colors.primary} />
               <Text style={styles.iconText}>Chọn ảnh</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.addImageButton} onPress={() => takePhoto(setImages)}>
-              <Icon name="photo-camera" size={20} color="#2563EB" />
+              <Icon name="photo-camera" size={20} color={colors.primary} />
               <Text style={styles.iconText}>Chụp ảnh</Text>
             </TouchableOpacity>
           </View>
@@ -412,5 +413,180 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+});
+
+const getStyles = (colors) => StyleSheet.create({
+  container: {
+    flexGrow: 1,
+    backgroundColor: colors.background,
+    padding: 16,
+  },
+  card: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: colors.shadow,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  headerText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: colors.text,
+    backgroundColor: colors.inputBackground,
+    minHeight: 120,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  imageList: {
+    marginBottom: 16,
+  },
+  imageWrapper: {
+    position: 'relative',
+    marginRight: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  imageItem: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  addImageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  iconText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: colors.text,
+  },
+  postButton: {
+    backgroundColor: colors.buttonBackground,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  postButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.buttonText,
+  },
+  disabledButton: {
+    backgroundColor: colors.textMuted,
+    opacity: 0.6,
+  },
+  imageModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: width - 40,
+    height: width - 40,
+  },
+  imageModalButtons: {
+    position: 'absolute',
+    bottom: 40,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  closeButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 8,
+    padding: 8,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 100,
+  },
+  successModal: {
+    backgroundColor: colors.cardBackground,
+    borderRadius: 16,
+    padding: 24,
+    width: '80%',
+    alignItems: 'center',
+  },
+  successIcon: {
+    marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  successText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  successButton: {
+    backgroundColor: colors.buttonBackground,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    width: '100%',
+    alignItems: 'center',
+  },
+  successButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.buttonText,
   },
 });

@@ -12,6 +12,7 @@ import {
 import { auth } from "../../../firebase";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Logo from "../../assets/images/logo.png";
+import { useTheme } from '../../context/ThemeContext';
 import { handleLogin, togglePasswordVisibility } from '../../logic/auth/login';
 
 const LoginScreen = ({ navigation }) => {
@@ -20,6 +21,8 @@ const LoginScreen = ({ navigation }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   return (
     <View style={styles.container}>
@@ -32,11 +35,10 @@ const LoginScreen = ({ navigation }) => {
       <Text style={styles.subtitle}>Log in to your account</Text>
 
       <View style={styles.inputContainer}>
-        {/* Email input */}
-        <View style={styles.inputWrapper}>
-          <MaterialIcons name="mail" size={24} color="#777" style={styles.icon} />          <TextInput
+        {/* Email input */}        <View style={styles.inputWrapper}>
+          <MaterialIcons name="mail" size={24} color={colors.textMuted} style={styles.icon} />          <TextInput
             placeholder="Email"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.placeholder}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -47,9 +49,9 @@ const LoginScreen = ({ navigation }) => {
 
         {/* Password input */}
         <View style={styles.inputWrapper}>
-          <MaterialIcons name="lock" size={24} color="#777" style={styles.icon} />          <TextInput
+          <MaterialIcons name="lock" size={24} color={colors.textMuted} style={styles.icon} />          <TextInput
             placeholder="Password"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.placeholder}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!isPasswordVisible}
@@ -59,7 +61,7 @@ const LoginScreen = ({ navigation }) => {
             <MaterialIcons
               name={isPasswordVisible ? "visibility" : "visibility-off"}
               size={24}
-              color="#777"
+              color={colors.textMuted}
             />
           </TouchableOpacity>
         </View>
@@ -97,14 +99,13 @@ const LoginScreen = ({ navigation }) => {
 
 export default LoginScreen;
 
-const styles = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f2f6fc",
+    backgroundColor: colors.background,
     justifyContent: "center",
     paddingHorizontal: 30,
     paddingBottom: 200,
-    
   },
   logo: {
     width: 150,
@@ -115,12 +116,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "700",
-    color: "#334155",
+    color: colors.text,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: "#64748b",
+    color: colors.textSecondary,
     marginBottom: 30,
     textAlign: "center",
   },
@@ -130,14 +131,16 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.cardBackground,
     borderRadius: 12,
     paddingHorizontal: 15,
-    shadowColor: "#000",
+    shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   icon: {
     marginRight: 12,
@@ -146,37 +149,37 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     fontSize: 16,
-    color: "#334155",
+    color: colors.text,
   },
   loginButton: {
-    backgroundColor: "#3b82f6",
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
-    shadowColor: "#3b82f6",
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 6,
   },
   loginButtonText: {
-    color: "#fff",
+    color: colors.buttonText,
     fontSize: 18,
     fontWeight: "700",
   },
   errorMessage: {
-    color: "red",
+    color: colors.error,
     textAlign: "center",
     marginTop: -10,
     marginBottom: 10,
   },
   registerText: {
-    color: "#64748b",
+    color: colors.textSecondary,
     textAlign: "center",
     marginTop: 20,
   },
   registerLink: {
-    color: "#3b82f6",
+    color: colors.primary,
     fontWeight: "700",
   },
 });

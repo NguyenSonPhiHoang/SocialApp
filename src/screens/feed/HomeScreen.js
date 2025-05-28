@@ -15,10 +15,12 @@ import {
 import moment from 'moment';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { useTheme } from '../../context/ThemeContext';
 import { fetchPosts, handleLike, handleAddComment } from '../../logic/feed/home';
 
 // Skeleton Loading Component with Shimmer Effect
 const SkeletonPost = () => {
+  const { colors } = useTheme();
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -37,14 +39,12 @@ const SkeletonPost = () => {
       ])
     ).start();
   }, [shimmerAnim]);
-
   const shimmerColor = shimmerAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#E0E0E0', '#D0D0D0'],
+    outputRange: [colors.skeletonBase, colors.skeletonHighlight],
   });
-
   return (
-    <View style={styles.postContainer}>
+    <View style={[styles.postContainer, { backgroundColor: colors.cardBackground }]}>
       <View style={styles.postHeader}>
         <Animated.View style={[styles.postAvatar, { backgroundColor: shimmerColor }]} />
         <View>
@@ -64,29 +64,33 @@ const SkeletonPost = () => {
 };
 
 // Comment Item Component
-const CommentItem = ({ comment, fadeAnim }) => (
-  <Animated.View style={[styles.commentContainer, { opacity: fadeAnim }]}>
-    <Image
-      source={{ uri: comment.avatar || 'https://randomuser.me/api/portraits/thumb/men/1.jpg' }}
-      style={styles.commentAvatar}
-    />
-    <View style={styles.commentContent}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-        <Text style={styles.commentUsername}>
-          <Text>{comment.username}</Text>
-          <Text>: </Text>
+const CommentItem = ({ comment, fadeAnim }) => {
+  const { colors } = useTheme();
+  return (
+    <Animated.View style={[styles.commentContainer, { opacity: fadeAnim, backgroundColor: colors.inputBackground }]}>
+      <Image
+        source={{ uri: comment.avatar || 'https://randomuser.me/api/portraits/thumb/men/1.jpg' }}
+        style={styles.commentAvatar}
+      />
+      <View style={styles.commentContent}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+          <Text style={[styles.commentUsername, { color: colors.text }]}>
+            <Text>{comment.username}</Text>
+            <Text>: </Text>
+          </Text>
+          <Text style={[styles.commentText, { color: colors.text }]}>{comment.text}</Text>
+        </View>
+        <Text style={[styles.commentTime, { color: colors.textMuted }]}>
+          <Text>{comment.createdAt ? moment(comment.createdAt).fromNow() : 'now'}</Text>
         </Text>
-        <Text style={styles.commentText}>{comment.text}</Text>
       </View>
-      <Text style={styles.commentTime}>
-        <Text>{comment.createdAt ? moment(comment.createdAt).fromNow() : 'now'}</Text>
-      </Text>
-    </View>
-  </Animated.View>
-);
+    </Animated.View>
+  );
+};
 
 // Post Item Component
 const PostItem = ({ post, onLike, onAddComment }) => {
+  const { colors } = useTheme();
   const [commentText, setCommentText] = useState('');
   const [showAllComments, setShowAllComments] = useState(false);
   const likeScaleAnim = useRef(new Animated.Value(1)).current;
@@ -133,21 +137,20 @@ const PostItem = ({ post, onLike, onAddComment }) => {
       }).start();
     }
   };
-
   return (
-    <View style={styles.postContainer}>
+    <View style={[styles.postContainer, { backgroundColor: colors.cardBackground }]}>
       <View style={styles.postHeader}>
         <Image source={{ uri: post.avatar }} style={styles.postAvatar} />
         <View>
-          <Text style={styles.username}>
+          <Text style={[styles.username, { color: colors.text }]}>
             <Text>{post.username}</Text>
           </Text>
-          <Text style={styles.timestamp}>
+          <Text style={[styles.timestamp, { color: colors.textMuted }]}>
             <Text>{moment(post.createdAt).fromNow()}</Text>
           </Text>
         </View>
       </View>
-      <Text style={styles.content}>
+      <Text style={[styles.content, { color: colors.text }]}>
         <Text>{post.content}</Text>
       </Text>
       {post.images && post.images.length > 0 && (
@@ -179,17 +182,16 @@ const PostItem = ({ post, onLike, onAddComment }) => {
               </View>
             </View>
           )}
-        </View>
-      )}
-      <View style={styles.postFooter}>
-        <Text style={styles.likes}>
+        </View>      )}
+      <View style={[styles.postFooter, { borderTopColor: colors.border }]}>
+        <Text style={[styles.likes, { color: colors.textSecondary }]}>
           <Text>{post.likes}</Text>
           <Text>{' '}</Text>
           <Text>{post.likes === 1 ? 'Like' : 'Likes'}</Text>
         </Text>
         {post.comments.length > 0 && (
           <View style={styles.commentsSection}>
-            <Text style={styles.commentCount}>
+            <Text style={[styles.commentCount, { color: colors.textSecondary }]}>
               <Text>{post.comments.length}</Text>
               <Text>{' '}</Text>
               <Text>{post.comments.length === 1 ? 'Comment' : 'Comments'}</Text>
@@ -200,45 +202,44 @@ const PostItem = ({ post, onLike, onAddComment }) => {
                 comment={comment}
                 fadeAnim={commentFadeAnims[index] || new Animated.Value(1)}
               />
-            ))}
-            {post.comments.length > 3 && (
+            ))}            {post.comments.length > 3 && (
               <TouchableOpacity onPress={() => setShowAllComments(!showAllComments)}>
-                <Text style={styles.viewMoreComments}>
+                <Text style={[styles.viewMoreComments, { color: colors.primary }]}>
                   {showAllComments ? 'Hide comments' : 'View more comments'}
                 </Text>
               </TouchableOpacity>
             )}
           </View>
-        )}
-        <View style={styles.actionButtons}>
+        )}        <View style={styles.actionButtons}>
           <TouchableOpacity onPress={handleLikePress}>
-            <Animated.View style={[styles.actionButton, styles.actionButtonLike, { transform: [{ scale: likeScaleAnim }] }]}>
+            <Animated.View style={[styles.actionButton, { backgroundColor: colors.likeBackground, transform: [{ scale: likeScaleAnim }] }]}>
               <Ionicons
                 name={post.liked ? 'heart' : 'heart-outline'}
                 size={20}
-                color={post.liked ? '#FF3040' : '#555'}
+                color={post.liked ? colors.error : colors.textSecondary}
               />
-              <Text style={[styles.actionText, post.liked && { color: '#FF3040' }]}>
+              <Text style={[styles.actionText, { color: post.liked ? colors.error : colors.textSecondary }]}>
                 <Text>Like</Text>
               </Text>
             </Animated.View>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.actionButtonComment]}>
-            <Ionicons name="chatbubble-outline" size={20} color="#555" />
-            <Text style={styles.actionText}>
+          <TouchableOpacity style={[styles.actionButton, { backgroundColor: colors.commentBackground }]}>
+            <Ionicons name="chatbubble-outline" size={20} color={colors.textSecondary} />
+            <Text style={[styles.actionText, { color: colors.textSecondary }]}>
               <Text>Comment</Text>
             </Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.commentInputContainer}>          <TextInput
-            style={styles.commentInput}
+        <View style={[styles.commentInputContainer, { borderColor: colors.border, backgroundColor: colors.inputBackground }]}>
+          <TextInput
+            style={[styles.commentInput, { color: colors.text }]}
             placeholder="Write a comment..."
-            placeholderTextColor="#888"
+            placeholderTextColor={colors.placeholder}
             value={commentText}
             onChangeText={setCommentText}
           />
           <TouchableOpacity onPress={handleAddComment}>
-            <Ionicons name="send" size={20} color="#1877F2" />
+            <Ionicons name="send" size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -247,6 +248,7 @@ const PostItem = ({ post, onLike, onAddComment }) => {
 };
 
 const HomeScreen = () => {
+  const { colors, toggleTheme, isDarkMode } = useTheme();
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -307,13 +309,12 @@ const HomeScreen = () => {
   const handleAddCommentPress = (postId, text, fadeAnim) => {
     handleAddComment({ postId, text, fadeAnim, setPosts, userName: 'Current User' });
   };
-
   const renderFooter = () => {
     if (isTabRefreshing && posts.length > 0) {
       return (
         <View style={styles.footerLoading}>
-          <ActivityIndicator size="small" color="#1877F2" />
-          <Text style={styles.footerLoadingText}>Đang tải...</Text>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={[styles.footerLoadingText, { color: colors.primary }]}>Đang tải...</Text>
         </View>
       );
     }
@@ -322,7 +323,7 @@ const HomeScreen = () => {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>No posts available</Text>
+      <Text style={[styles.emptyText, { color: colors.textMuted }]}>No posts available</Text>
     </View>
   );
 
@@ -335,21 +336,26 @@ const HomeScreen = () => {
       />
     ),
     []
-  );
-  return (
-    <View style={styles.container}>
+  );  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>DeBug Social</Text>        <View style={styles.headerIcons}>
+      <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
+        <Text style={[styles.headerTitle, { color: colors.headerText }]}>DeBug Social</Text>        <View style={styles.headerIcons}>
           {(isLoading || isTabRefreshing) && (
             <ActivityIndicator 
               size="small" 
-              color="#FFF" 
+              color={colors.headerText} 
               style={styles.headerLoadingIndicator}
             />
-          )}
+          )}          <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
+            <Ionicons 
+              name={isDarkMode ? 'sunny' : 'moon'} 
+              size={24} 
+              color={colors.headerText} 
+            />
+          </TouchableOpacity>
         </View>
-      </View>      {/* FlatList */}
+      </View>{/* FlatList */}
       <FlatList
         ref={flatListRef}
         data={posts}
