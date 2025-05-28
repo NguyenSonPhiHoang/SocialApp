@@ -9,11 +9,10 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../../../firebase";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Logo from "../../assets/images/logo.png";
+import { handleRegister, togglePasswordVisibility } from '../../logic/auth/register';
 
 const RegisterScreen = ({ navigation }) => {
   const [name, setName] = useState("");
@@ -22,40 +21,6 @@ const RegisterScreen = ({ navigation }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const togglePasswordVisibility = () => {
-    setIsPasswordVisible((prev) => !prev);
-  };
-
-  const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !password) {
-      Alert.alert("Thông báo", "Vui lòng nhập đầy đủ tên, email và mật khẩu.");
-      return;
-    }
-
-    setIsLoading(true);
-    setErrorMessage("");
-
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        name,
-        email,
-        createdAt: new Date(),
-      });
-
-      Alert.alert("Đăng ký thành công", "Bạn đã đăng ký tài khoản thành công!");
-      setIsLoading(false);
-      navigation.navigate("Login");
-    } catch (error) {
-      setErrorMessage(error.message);
-      setIsLoading(false);
-      Alert.alert("Lỗi đăng ký", error.message);
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -107,7 +72,7 @@ const RegisterScreen = ({ navigation }) => {
             style={styles.textInput}
             autoCapitalize="none"
           />
-          <TouchableOpacity onPress={togglePasswordVisibility} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity onPress={() => togglePasswordVisibility(setIsPasswordVisible)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <MaterialIcons
               name={isPasswordVisible ? "visibility" : "visibility-off"}
               size={24}
@@ -122,7 +87,7 @@ const RegisterScreen = ({ navigation }) => {
         {/* Register button */}
         <TouchableOpacity
           style={[styles.loginButton, isLoading && { opacity: 0.7 }]}
-          onPress={handleRegister}
+          onPress={() => handleRegister({ name, email, password, setIsLoading, setErrorMessage, navigation })}
           disabled={isLoading}
           activeOpacity={0.8}
         >

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { handleSave } from '../../logic/profile/profile';
 
 const DUMMY_POSTS = [
   { id: '1', image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80', title: 'Bãi biển', content: 'Check-in biển xanh' },
@@ -30,21 +31,6 @@ const ProfileScreen = () => {
   const [editBio, setEditBio] = useState(user.bio);
   const [editEmail, setEditEmail] = useState(user.email);
   const [saving, setSaving] = useState(false);
-
-  const handleSave = () => {
-    if (!editName.trim() || !editEmail.trim()) return;
-    setSaving(true);
-    setTimeout(() => {
-      setUser((prev) => ({
-        ...prev,
-        name: editName,
-        bio: editBio,
-        email: editEmail,
-      }));
-      setEditModalVisible(false);
-      setSaving(false);
-    }, 1000);
-  };
 
   return (
     <View style={styles.container}>
@@ -134,7 +120,7 @@ const ProfileScreen = () => {
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.saveBtn, saving && { opacity: 0.7 }]}
-                onPress={handleSave}
+                onPress={() => handleSave({ editName, editEmail, editBio, setSaving, setUser, setEditModalVisible })}
                 disabled={saving}
               >
                 {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Lưu</Text>}

@@ -61,71 +61,6 @@ const SkeletonPost = () => {
   );
 };
 
-// Stories Bar Component
-const StoriesBar = () => {
-  const stories = Array.from({ length: 10 }, (_, index) => ({
-    id: `story-${index}`,
-    username: `User ${index}`,
-    avatar: `https://randomuser.me/api/portraits/thumb/men/${index}.jpg`,
-    isNew: index % 2 === 0,
-  }));
-
-  return (
-    <View style={styles.storiesContainer}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {stories.map((story) => (
-          <TouchableOpacity key={story.id} style={styles.storyItem}>
-            <View style={[styles.storyAvatarContainer, story.isNew && styles.storyAvatarNew]}>
-              <Image source={{ uri: story.avatar }} style={styles.storyAvatar} />
-              {story.isNew && (
-                <View style={styles.storyGradientBorder}>
-                  <View style={styles.storyGradientInner} />
-                </View>
-              )}
-              {story.isNew && <View style={styles.newBadge}><Text style={styles.newBadgeText}>New</Text></View>}
-            </View>
-            <Text style={styles.storyUsername} numberOfLines={1}>
-              {story.username}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </View>
-  );
-};
-
-// Create Post Component
-const CreatePost = ({ onCreatePost }) => {
-  const [postText, setPostText] = useState('');
-
-  const handleSubmit = () => {
-    if (postText.trim()) {
-      onCreatePost(postText);
-      setPostText('');
-    }
-  };
-
-  return (
-    <View style={styles.createPostContainer}>
-      <Image
-        source={{ uri: 'https://randomuser.me/api/portraits/thumb/men/1.jpg' }}
-        style={styles.createPostAvatar}
-      />
-      <View style={styles.createPostInputWrapper}>
-        <TextInput
-          style={styles.createPostInput}
-          placeholder="What's on your mind?"
-          placeholderTextColor="#888"
-          value={postText}
-          onChangeText={setPostText}
-        />
-      </View>
-      <TouchableOpacity style={styles.createPostButton} onPress={handleSubmit}>
-        <Ionicons name="send" size={20} color="#1877F2" />
-      </TouchableOpacity>
-    </View>
-  );
-};
 
 // Comment Item Component
 const CommentItem = ({ comment, fadeAnim }) => (
@@ -276,134 +211,21 @@ const HomeScreen = () => {
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Giả lập API
-  const fetchPosts = async (pageNumber) => {
-    try {
-      setIsLoading(true);
-      const mockPosts = Array.from({ length: 10 }, (_, index) => ({
-        id: `${pageNumber}-${index}`,
-        username: `User ${pageNumber}-${index}`,
-        avatar: `https://randomuser.me/api/portraits/thumb/men/${pageNumber + index}.jpg`,
-        content: `This is a sample post for item ${pageNumber}-${index}. Enjoy the social app!`,
-        image: index % 2 === 0 ? `https://picsum.photos/400/300?random=${pageNumber + index}` : null,
-        createdAt: new Date(Date.now() - (pageNumber * 10 + index) * 3600000),
-        likes: Math.floor(Math.random() * 100),
-        liked: false,
-        comments: [],
-        likedUsers: [`Friend ${index + 1}`, `Friend ${index + 2}`, `Friend ${index + 3}`],
-        shares: 0,
-      }));
-
-      const sortedPosts = mockPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-      if (mockPosts.length === 0) {
-        setHasMore(false);
-      } else {
-        setPosts((prevPosts) => [...prevPosts, ...sortedPosts]);
-      }
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // XÓA TOÀN BỘ LOGIC GIẢ LẬP DỮ LIỆU LOCAL
+  // Khi tích hợp Firebase, bạn sẽ fetch dữ liệu thật ở đây
 
   useEffect(() => {
-    if (hasMore) {
-      fetchPosts(page);
-    }
-  }, [page]);
+    // Để trống, hoặc fetch từ Firebase sau này
+  }, []);
 
-  const handleLoadMore = () => {
-    if (!isLoading && hasMore) {
-      let timeout;
-      clearTimeout(timeout);
-      timeout = setTimeout(() => setPage((prevPage) => prevPage + 1), 300);
-    }
-  };
+  // Dummy handlers giữ lại để không lỗi, sẽ thay bằng logic Firebase sau
+  const handleLoadMore = () => {};
+  const onRefresh = () => {};
+  const handleLike = () => {};
+  const handleAddComment = () => {};
+  const handleShare = () => {};
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    setPosts([]);
-    setPage(1);
-    setHasMore(true);
-    fetchPosts(1).then(() => setRefreshing(false));
-  };
-
-  const handleLike = (postId) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              liked: !post.liked,
-              likes: post.liked ? post.likes - 1 : post.likes + 1,
-              likedUsers: post.liked
-                ? post.likedUsers.filter((user) => user !== 'Current User')
-                : [...post.likedUsers, 'Current User'],
-            }
-          : post
-      )
-    );
-  };
-
-  const handleAddComment = (postId, text, fadeAnim) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              comments: [
-                ...post.comments,
-                {
-                  id: `${postId}-${post.comments.length}`,
-                  username: 'Current User',
-                  text,
-                  createdAt: new Date(),
-                },
-              ],
-            }
-          : post
-      )
-    );
-  };
-
-  const handleShare = (postId) => {
-    setPosts((prevPosts) =>
-      prevPosts.map((post) =>
-        post.id === postId
-          ? { ...post, shares: post.shares + 1 }
-          : post
-      )
-    );
-  };
-
-  const handleCreatePost = (content) => {
-    const newPost = {
-      id: `post-${Date.now()}`,
-      username: 'Current User',
-      avatar: 'https://randomuser.me/api/portraits/thumb/men/1.jpg',
-      content,
-      image: null,
-      createdAt: new Date(),
-      likes: 0,
-      liked: false,
-      comments: [],
-      likedUsers: [],
-      shares: 0,
-    };
-    setPosts((prevPosts) => [newPost, ...prevPosts]);
-  };
-
-  const renderFooter = () => {
-    if (!isLoading) return null;
-    return (
-      <View style={styles.footer}>
-        <ActivityIndicator size="large" color="#1877F2" />
-      </View>
-    );
-  };
-
+  const renderFooter = () => null;
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyText}>No posts available</Text>
@@ -419,7 +241,7 @@ const HomeScreen = () => {
         onShare={handleShare}
       />
     ),
-    [handleLike, handleAddComment, handleShare]
+    []
   );
 
   return (
@@ -427,16 +249,8 @@ const HomeScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>DeBug Social</Text>
-        <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="search" size={24} color="#FFF" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Ionicons name="chatbubbles-outline" size={24} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        <View style={styles.headerIcons}></View>
       </View>
-
       {/* FlatList */}
       <FlatList
         data={posts}
@@ -451,8 +265,6 @@ const HomeScreen = () => {
         }
         ListHeaderComponent={
           <>
-            <StoriesBar />
-            <CreatePost onCreatePost={handleCreatePost} />
             {isLoading && posts.length === 0 && (
               <View>
                 <SkeletonPost />
