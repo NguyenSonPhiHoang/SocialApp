@@ -71,10 +71,10 @@ const CommentItem = ({ comment, fadeAnim }) => (
       style={styles.commentAvatar}
     />
     <View style={styles.commentContent}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+      <Text style={styles.commentText}>
         <Text style={styles.commentUsername}>{comment.username}: </Text>
-        <Text style={styles.commentText}>{comment.text}</Text>
-      </View>
+        {comment.text}
+      </Text>
       <Text style={styles.commentTime}>
         {comment.createdAt ? moment(comment.createdAt).fromNow() : 'now'}
       </Text>
@@ -85,6 +85,7 @@ const CommentItem = ({ comment, fadeAnim }) => (
 // Post Item Component
 const PostItem = ({ post, onLike, onAddComment }) => {
   const [commentText, setCommentText] = useState('');
+  const [showAllComments, setShowAllComments] = useState(false);
   const likeScaleAnim = useRef(new Animated.Value(1)).current;
   const commentFadeAnims = useRef([]).current;
 
@@ -155,10 +156,9 @@ const PostItem = ({ post, onLike, onAddComment }) => {
               <View style={styles.postImagesThreeRight}>
                 <Image source={{ uri: post.images[1] }} style={styles.postImageThreeSmall} />
                 <View style={styles.postImageThreeBottomContainer}>
-                  <Image source={{ uri: post.images[2] }} style={styles.postImageThreeSmall} />
-                  {post.images.length > 3 && (
+                  <Image source={{ uri: post.images[2] }} style={styles.postImageThreeSmall} />                  {post.images.length > 3 && (
                     <View style={styles.postImageMoreOverlay}>
-                      <Text style={styles.postImageMoreText}>+{post.images.length - 3}</Text>
+                      <Text style={styles.postImageMoreText}>{`+${post.images.length - 3}`}</Text>
                     </View>
                   )}
                 </View>
@@ -168,13 +168,12 @@ const PostItem = ({ post, onLike, onAddComment }) => {
         </View>
       )}
       <View style={styles.postFooter}>
-        <Text style={styles.likes}>{post.likes} {post.likes === 1 ? 'Like' : 'Likes'}</Text>
+        <Text style={styles.likes}>{`${post.likes} ${post.likes === 1 ? 'Like' : 'Likes'}`}</Text>
         {post.comments.length > 0 && (
-          <View style={styles.commentsSection}>
-            <Text style={styles.commentCount}>
-              {post.comments.length} {post.comments.length === 1 ? 'Comment' : 'Comments'}
+          <View style={styles.commentsSection}>            <Text style={styles.commentCount}>
+              {`${post.comments.length} ${post.comments.length === 1 ? 'Comment' : 'Comments'}`}
             </Text>
-            {post.comments.slice(0, 3).map((comment, index) => (
+            {(showAllComments ? post.comments : post.comments.slice(0, 3)).map((comment, index) => (
               <CommentItem
                 key={comment.id}
                 comment={comment}
@@ -182,8 +181,10 @@ const PostItem = ({ post, onLike, onAddComment }) => {
               />
             ))}
             {post.comments.length > 3 && (
-              <TouchableOpacity>
-                <Text style={styles.viewMoreComments}>View more comments</Text>
+              <TouchableOpacity onPress={() => setShowAllComments(!showAllComments)}>
+                <Text style={styles.viewMoreComments}>
+                  {showAllComments ? 'Hide comments' : 'View more comments'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
