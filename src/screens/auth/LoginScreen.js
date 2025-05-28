@@ -9,10 +9,10 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../../firebase";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Logo from "../../assets/images/logo.png";
+import { handleLogin, togglePasswordVisibility } from '../../logic/auth/login';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -20,32 +20,6 @@ const LoginScreen = ({ navigation }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  const handleLogin = () => {
-    const emailRegex = /^[\w.-]+@gmail\.com$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert("Invalid email", "We only accept @gmail.com for now.");
-      return;
-    }
-
-    setIsLoading(true);
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        setIsLoading(false);
-        setErrorMessage("");
-      })
-      .catch((error) => {
-        setErrorMessage(error.message);
-        setIsLoading(false);
-        Alert.alert("Login failed!", error.message);
-      });
-      navigation.replace("HomeTabs");
-  };
-
-  const togglePasswordVisibility = () => {
-    setIsPasswordVisible((prev) => !prev);
-  };
 
   return (
     <View style={styles.container}>
@@ -83,7 +57,7 @@ const LoginScreen = ({ navigation }) => {
             secureTextEntry={!isPasswordVisible}
             style={styles.textInput}
           />
-          <TouchableOpacity onPress={togglePasswordVisibility} hitSlop={{top:10,bottom:10,left:10,right:10}}>
+          <TouchableOpacity onPress={() => togglePasswordVisibility(setIsPasswordVisible)} hitSlop={{top:10,bottom:10,left:10,right:10}}>
             <MaterialIcons
               name={isPasswordVisible ? "visibility" : "visibility-off"}
               size={24}
@@ -100,7 +74,7 @@ const LoginScreen = ({ navigation }) => {
         {/* Login button */}
         <TouchableOpacity
           style={[styles.loginButton, isLoading && {opacity: 0.7}]}
-          onPress={handleLogin}
+          onPress={() => handleLogin({ email, password, setIsLoading, setErrorMessage, navigation })}
           disabled={isLoading}
           activeOpacity={0.8}
         >

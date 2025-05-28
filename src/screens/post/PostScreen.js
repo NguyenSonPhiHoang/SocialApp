@@ -20,6 +20,14 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import {
+  pickImages,
+  takePhoto,
+  handlePost,
+  handleSuccessConfirm,
+  animateButton,
+  removeImage
+} from '../../logic/post/post';
 
 const { width } = Dimensions.get('window');
 const PRIVACY_OPTIONS = [
@@ -38,127 +46,6 @@ export default function PostScreen() {
   const [selectedImage, setSelectedImage] = useState(null);
   const navigation = useNavigation();
   const scalePost = useRef(new Animated.Value(1)).current;
-
-  const pickImages = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Cảnh báo', 'Ứng dụng cần quyền truy cập thư viện ảnh để chọn ảnh. Vui lòng cấp quyền trong cài đặt thiết bị.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 1,
-    });
-
-    if (!result.canceled && result.assets) {
-      const selectedUris = result.assets.map(asset => asset.uri);
-      setImages(prev => [...prev, ...selectedUris]);
-    }
-  };
-
-  const takePhoto = async () => {
-    if (Platform.OS !== 'android') {
-      Alert.alert('Lỗi', 'Tính năng này hiện chỉ hỗ trợ trên Android với custom client.');
-      return;
-    }
-
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(
-        'Cảnh báo',
-        'Ứng dụng cần quyền truy cập máy ảnh. Vui lòng cấp quyền trong Cài đặt > Ứng dụng > Quyền.',
-        [
-          { text: 'Hủy', style: 'cancel' },
-          { text: 'Mở Cài đặt', onPress: () => ImagePicker.requestCameraPermissionsAsync() }
-        ]
-      );
-      return;
-    }
-
-    try {
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
-        quality: 1,
-      });
-
-      if (!result.canceled && result.assets) {
-        const photoUri = result.assets[0].uri;
-        setImages(prev => [...prev, photoUri]);
-        Alert.alert('Thành công', 'Ảnh đã được chụp và thêm vào danh sách.');
-      }
-    } catch (error) {
-      Alert.alert('Lỗi', `Không thể chụp ảnh: ${error.message}`);
-    }
-  };
-
-  const handlePost = async () => {
-    if (!content && images.length === 0) {
-      Alert.alert('Cảnh báo', 'Vui lòng nhập nội dung hoặc chọn ảnh');
-      return;
-    }
-
-    setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const newPost = {
-      id: Date.now().toString(),
-      username: 'Người dùng',
-      avatar: 'https://randomuser.me/api/portraits/thumb/men/1.jpg',
-      content,
-      images,
-      privacy: selectedPrivacy.id,
-      createdAt: new Date().toISOString(),
-    };
-
-    setIsLoading(false);
-    setShowSuccessModal(true);
-  };
-
-  const handleSuccessConfirm = () => {
-    setShowSuccessModal(false);
-    setContent('');
-    setImages([]);
-    navigation.navigate('Home', { newPost: true });
-  };
-
-  const animateButton = (scale) => {
-    Animated.sequence([
-      Animated.timing(scale, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scale, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
-  const removeImage = (uriToRemove) => {
-    setImages(prev => prev.filter(uri => uri !== uriToRemove));
-  };
-
-  const renderImageItem = ({ item }) => (
-    <TouchableOpacity onPress={() => setSelectedImage(item)}>
-      <View style={styles.imageWrapper}>
-        <Image source={{ uri: item }} style={styles.imageItem} resizeMode="cover" />
-        <TouchableOpacity 
-          style={styles.removeButton} 
-          onPress={(e) => {
-            e.stopPropagation();
-            removeImage(item);
-          }}
-        >
-          <Icon name="close" size={18} color="#FFF" />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
     <KeyboardAvoidingView
@@ -187,52 +74,26 @@ export default function PostScreen() {
             value={content}
             onChangeText={setContent}
           />
-
-          {/* Chọn chế độ riêng tư */}
-          <View style={styles.privacyContainer}>
-            <TouchableOpacity
-              style={styles.privacySelect}
-              onPress={() => setShowPrivacyDropdown(!showPrivacyDropdown)}
-            >
-              <Icon name={selectedPrivacy.icon} size={20} color="#2563EB" />
-              <Text style={styles.privacySelectText}>{selectedPrivacy.label}</Text>
-              <Icon 
-                name={showPrivacyDropdown ? 'arrow-drop-up' : 'arrow-drop-down'} 
-                size={20} 
-                color="#2563EB" 
-              />
-            </TouchableOpacity>
-
-            {showPrivacyDropdown && (
-              <View style={styles.dropdownMenu}>
-                {PRIVACY_OPTIONS.map((option) => (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={[
-                      styles.dropdownOption,
-                      selectedPrivacy.id === option.id && styles.selectedOption,
-                    ]}
-                    onPress={() => {
-                      setSelectedPrivacy(option);
-                      setShowPrivacyDropdown(false);
-                    }}
-                  >
-                    <Icon name={option.icon} size={20} color="#2563EB" />
-                    <Text style={styles.dropdownOptionText}>{option.label}</Text>
-                    {selectedPrivacy.id === option.id && (
-                      <Icon name="check" size={20} color="#2563EB" style={styles.checkIcon} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-
           {/* Danh sách ảnh đã chọn */}
           {images.length > 0 && (
             <FlatList
               data={images}
-              renderItem={renderImageItem}
+              renderItem={({ item }) => (
+                <TouchableOpacity onPress={() => setSelectedImage(item)}>
+                  <View style={styles.imageWrapper}>
+                    <Image source={{ uri: item }} style={styles.imageItem} resizeMode="cover" />
+                    <TouchableOpacity 
+                      style={styles.removeButton} 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        removeImage(item, setImages);
+                      }}
+                    >
+                      <Icon name="close" size={18} color="#FFF" />
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              )}
               keyExtractor={(item, index) => index.toString()}
               horizontal
               style={styles.imageList}
@@ -242,12 +103,12 @@ export default function PostScreen() {
 
           {/* Các nút chọn ảnh */}
           <View style={styles.buttonRow}>
-            <TouchableOpacity style={styles.addImageButton} onPress={pickImages}>
+            <TouchableOpacity style={styles.addImageButton} onPress={() => pickImages(setImages)}>
               <Icon name="photo-library" size={20} color="#2563EB" />
               <Text style={styles.iconText}>Chọn ảnh</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.addImageButton} onPress={takePhoto}>
+            <TouchableOpacity style={styles.addImageButton} onPress={() => takePhoto(setImages)}>
               <Icon name="photo-camera" size={20} color="#2563EB" />
               <Text style={styles.iconText}>Chụp ảnh</Text>
             </TouchableOpacity>
@@ -256,7 +117,7 @@ export default function PostScreen() {
           {/* Nút đăng bài */}
           <TouchableOpacity
             onPress={() => {
-              handlePost();
+              handlePost({ content, images, selectedPrivacy, setIsLoading, setShowSuccessModal });
               animateButton(scalePost);
             }}
             disabled={(!content && images.length === 0) || isLoading}
@@ -312,7 +173,7 @@ export default function PostScreen() {
             <Text style={styles.successText}>Bài viết của bạn đã được đăng lên</Text>
             <TouchableOpacity
               style={styles.successButton}
-              onPress={handleSuccessConfirm}
+              onPress={() => handleSuccessConfirm({ setShowSuccessModal, setContent, setImages, navigation })}
             >
               <Text style={styles.successButtonText}>OK</Text>
             </TouchableOpacity>
