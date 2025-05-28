@@ -1,6 +1,10 @@
 // Post creation logic
 import { Alert, Platform, Animated } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { db } from '../../../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
 
 export const pickImages = async (setImages) => {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -58,9 +62,48 @@ export const handlePost = async ({ content, images, selectedPrivacy, setIsLoadin
     return;
   }
   setIsLoading(true);
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  setIsLoading(false);
-  setShowSuccessModal(true);
+  try {
+    // Get current user
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (!user) {
+      setIsLoading(false);
+      Alert.alert('Lỗi', 'Bạn cần đăng nhập để đăng bài.');
+      return;
+    }
+    // Upload images to Firebase Storage and get URLs
+    let imageUrls = [];
+    if (images.length > 0) {
+      const storage = getStorage();
+      for (const imgUri of images) {
+        const response = await fetch(imgUri);
+        const blob = await response.blob();
+        const filename = `${user.uid}_${Date.now()}_${Math.floor(Math.random()*10000)}.jpg`;
+        const storageRef = ref(storage, `feeds/${user.uid}/${filename}`);
+        await uploadBytes(storageRef, blob);
+        const url = await getDownloadURL(storageRef);
+        imageUrls.push(url);
+      }
+    }    // Save post to Firestore
+    await addDoc(collection(db, 'feeds'), {
+      userId: user.uid,
+      userEmail: user.email,
+      userName: user.displayName || '',
+      content,
+      images: imageUrls,
+      privacy: selectedPrivacy.id,
+      createdAt: serverTimestamp(),
+      likes: 0,
+      likedBy: [],
+      comments: [],
+      shares: 0,
+    });
+    setIsLoading(false);
+    setShowSuccessModal(true);
+  } catch (error) {
+    setIsLoading(false);
+    Alert.alert('Lỗi', error.message || 'Đăng bài thất bại');
+  }
 };
 
 export const handleSuccessConfirm = ({ setShowSuccessModal, setContent, setImages, navigation }) => {

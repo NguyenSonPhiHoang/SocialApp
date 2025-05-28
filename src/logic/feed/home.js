@@ -1,28 +1,68 @@
-// Home feed logic
-export const fetchPosts = async ({ pageNumber, setIsLoading, setPosts, setHasMore }) => {
+import { db } from '../../../firebase';
+import { collection, getDocs, query, orderBy, doc, getDoc, updateDoc, arrayUnion, increment, arrayRemove, serverTimestamp } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+
+export const fetchPosts = async ({ setIsLoading, setPosts }) => {
+  setIsLoading(true);
   try {
-    setIsLoading(true);
-    const mockPosts = Array.from({ length: 10 }, (_, index) => ({
-      id: `${pageNumber}-${index}`,
-      username: `User ${pageNumber}-${index}`,
-      avatar: `https://randomuser.me/api/portraits/thumb/men/${pageNumber + index}.jpg`,
-      content: `This is a sample post for item ${pageNumber}-${index}. Enjoy the social app!`,
-      image: index % 2 === 0 ? `https://picsum.photos/400/300?random=${pageNumber + index}` : null,
-      createdAt: new Date(Date.now() - (pageNumber * 10 + index) * 3600000),
-      likes: Math.floor(Math.random() * 100),
-      liked: false,
-      comments: [],
-      likedUsers: [`Friend ${index + 1}`, `Friend ${index + 2}`, `Friend ${index + 3}`],
-      shares: 0,
-    }));
-    const sortedPosts = mockPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    if (mockPosts.length === 0) {
-      setHasMore(false);
-    } else {
-      setPosts((prevPosts) => [...prevPosts, ...sortedPosts]);
-    }
+    const q = query(collection(db, 'feeds'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    const posts = [];
+    for (const docSnap of querySnapshot.docs) {
+      const data = docSnap.data();
+      let userInfo = { name: '', avatar: '', email: '' };
+      if (data.userId) {
+        const userDoc = await getDoc(doc(db, 'users', data.userId));
+        if (userDoc.exists()) {
+          const u = userDoc.data();
+          userInfo = {
+            name: u.name || '',
+            avatar: u.avatar || '',
+            email: u.email || '',
+          };        }
+      }      // Process comments to include user info
+      const processedComments = [];
+      if (data.comments && data.comments.length > 0) {
+        for (const comment of data.comments) {
+          let commentUserInfo = { name: '', avatar: '' };
+          if (comment.userId) {
+            const commentUserDoc = await getDoc(doc(db, 'users', comment.userId));
+            if (commentUserDoc.exists()) {
+              const cu = commentUserDoc.data();
+              commentUserInfo = {
+                name: cu.name || '',
+                avatar: cu.avatar || '',
+              };
+            }
+          }          processedComments.push({
+            ...comment,
+            username: commentUserInfo.name || comment.username || 'Unknown User',
+            avatar: commentUserInfo.avatar || comment.avatar,
+            createdAt: comment.createdAt ? 
+              (comment.createdAt.toDate ? comment.createdAt.toDate() : 
+               comment.createdAt instanceof Date ? comment.createdAt : 
+               new Date(comment.createdAt)) : 
+              new Date(),
+          });
+        }
+      }      posts.push({
+        id: docSnap.id,
+        ...data,
+        images: data.images || [],
+        image: data.images && data.images.length > 0 ? data.images[0] : null, // Keep for backward compatibility
+        avatar: userInfo.avatar || '',
+        username: userInfo.name || data.userName || data.userEmail || 'Unknown',
+        userEmail: userInfo.email || data.userEmail || '',
+        comments: processedComments,
+        likes: data.likes || 0,
+        likedBy: data.likedBy || [],
+        liked: data.likedBy && data.likedBy.includes(getAuth().currentUser?.uid) || false,
+        shares: data.shares || 0,
+        createdAt: data.createdAt ? data.createdAt.toDate && data.createdAt.toDate() : new Date(),
+      });    }
+    setPosts(posts);
   } catch (error) {
-    console.error('Error fetching posts:', error);
+    setPosts([]);
   } finally {
     setIsLoading(false);
   }
@@ -44,51 +84,139 @@ export const onRefresh = ({ setRefreshing, setPosts, setPage, setHasMore, fetchP
   fetchPosts(1).then(() => setRefreshing(false));
 };
 
-export const handleLike = ({ postId, setPosts }) => {
+export const handleLike = async ({ postId, setPosts }) => {
+  const auth = getAuth();
+  const currentUserId = auth.currentUser?.uid;
+  
+  if (!currentUserId) {
+    return;
+  }
+
+  // Optimistic update
+  setPosts((prevPosts) =>
+    prevPosts.map((post) => {
+      if (post.id === postId) {
+        const isCurrentlyLiked = post.likedBy.includes(currentUserId);
+        const newLikedBy = isCurrentlyLiked 
+          ? post.likedBy.filter(uid => uid !== currentUserId)
+          : [...post.likedBy, currentUserId];
+        
+        return {
+          ...post,
+          liked: !isCurrentlyLiked,
+          likes: newLikedBy.length,
+          likedBy: newLikedBy,
+        };
+      }
+      return post;
+    })
+  );
+
+  try {
+    const postRef = doc(db, 'feeds', postId);
+    
+    // Get current post data to check if user already liked
+    const postDoc = await getDoc(postRef);
+    if (postDoc.exists()) {
+      const postData = postDoc.data();
+      const likedBy = postData.likedBy || [];
+      const isLiked = likedBy.includes(currentUserId);
+      
+      if (isLiked) {
+        // Remove like
+        await updateDoc(postRef, {
+          likedBy: arrayRemove(currentUserId),
+          likes: increment(-1),
+        });
+      } else {
+        // Add like
+        await updateDoc(postRef, {
+          likedBy: arrayUnion(currentUserId),
+          likes: increment(1),
+        });
+      }
+    }
+  } catch (error) {
+    // Revert optimistic update on error
+    setPosts((prevPosts) =>
+      prevPosts.map((post) => {
+        if (post.id === postId) {
+          const isCurrentlyLiked = post.likedBy.includes(currentUserId);
+          const newLikedBy = isCurrentlyLiked 
+            ? post.likedBy.filter(uid => uid !== currentUserId)
+            : [...post.likedBy, currentUserId];
+          
+          return {
+            ...post,
+            liked: !isCurrentlyLiked,
+            likes: newLikedBy.length,
+            likedBy: newLikedBy,
+          };
+        }
+        return post;
+      })
+    );
+    console.error('Error updating like:', error);
+  }
+};
+
+export const handleAddComment = async ({ postId, text, fadeAnim, setPosts, userName }) => {
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
+  
+  if (!currentUser || !text.trim()) {
+    return;
+  }
+
+  // Get current user info from Firestore
+  let currentUserInfo = { name: '', avatar: '' };
+  try {
+    const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      currentUserInfo = {
+        name: userData.name || '',
+        avatar: userData.avatar || '',
+      };    }
+  } catch (error) {
+    console.error('Error fetching user info:', error);
+  }const timestamp = Date.now();
+  
+  const newComment = {
+    id: `${currentUser.uid}-${timestamp}`,
+    userId: currentUser.uid,
+    username: currentUserInfo.name || userName || currentUser.displayName || currentUser.email || 'Unknown User',
+    avatar: currentUserInfo.avatar || '',
+    text: text.trim(),
+    createdAt: new Date(timestamp),
+  };
+
+  // Optimistic update
   setPosts((prevPosts) =>
     prevPosts.map((post) =>
       post.id === postId
         ? {
             ...post,
-            liked: !post.liked,
-            likes: post.liked ? post.likes - 1 : post.likes + 1,
-            likedUsers: post.liked
-              ? post.likedUsers.filter((user) => user !== 'Current User')
-              : [...post.likedUsers, 'Current User'],
+            comments: [...post.comments, newComment],
           }
         : post
     )
-  );
-};
-
-export const handleAddComment = ({ postId, text, fadeAnim, setPosts }) => {
-  setPosts((prevPosts) =>
-    prevPosts.map((post) =>
-      post.id === postId
-        ? {
-            ...post,
-            comments: [
-              ...post.comments,
-              {
-                id: `${postId}-${post.comments.length}`,
-                username: 'Current User',
-                text,
-                createdAt: new Date(),
-              },
-            ],
-          }
-        : post
-    )
-  );
-};
-
-export const handleShare = ({ postId, setPosts }) => {
-  setPosts((prevPosts) =>
-    prevPosts.map((post) =>
-      post.id === postId
-        ? { ...post, shares: post.shares + 1 }
-        : post
-    )
-  );
+  );  try {
+    const postRef = doc(db, 'feeds', postId);
+    await updateDoc(postRef, {
+      comments: arrayUnion(newComment),
+    });  } catch (error) {
+    // Revert optimistic update on error
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              comments: post.comments.filter(comment => comment.id !== newComment.id),
+            }
+          : post
+      )
+    );
+  }
 };
 
