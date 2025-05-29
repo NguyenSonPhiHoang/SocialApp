@@ -27,10 +27,16 @@
       "edgeToEdgeEnabled": true,
       "permissions": [
         "CAMERA"
-      ]
+      ],
+      "package": "com.sindyz0103.SocialApp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e88ba8f9-c6ac-4cb4-b81c-786c749a5e25"
+      }
     }
   }
 }

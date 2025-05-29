@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { getFirestore, doc, updateDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getAuth, signOut } from 'firebase/auth';
 import { fetchUserProfileData, handleSave } from '../../logic/profile/profile';
 import { useTheme } from '../../context/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 const ProfileScreen = ({ route }) => {
-  const theme = useTheme();  const [user, setUser] = useState({
+  const theme = useTheme();
+  const navigation = useNavigation();
+  const [user, setUser] = useState({
     name: '',
     username: '',
     bio: '',
@@ -17,13 +19,57 @@ const ProfileScreen = ({ route }) => {
     posts: 0,
     email: '',
     likes: 0,
-  });const [posts, setPosts] = useState([]);
+  });
+  const [posts, setPosts] = useState([]);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editBio, setEditBio] = useState('');  const [saving, setSaving] = useState(false);
+  const [editBio, setEditBio] = useState('');
+  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [successModal, setSuccessModal] = useState(false);
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const handleLogout = () => {
+    Alert.alert(
+      'Xác nhận đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất không?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel'
+        },
+        {
+          text: 'Đăng xuất',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut(getAuth());
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Auth' }]
+              });
+            } catch (error) {
+              Alert.alert('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại.');
+            }
+          }
+        }
+      ],
+      { cancelable: true }
+    );
+  };
+
+  // Set up navigation options with logout button
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity 
+          onPress={handleLogout}
+          style={{ marginRight: 15 }}
+        >
+          <MaterialIcons name="logout" size={24} color={theme.colors.headerText} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   // Lấy thông tin user và bài viết từ Firestore
   const loadUserData = async () => {
