@@ -35,9 +35,11 @@ const RegisterScreen = ({ navigation }) => {
       <Text style={styles.title}>Create Account</Text>
       <Text style={styles.subtitle}>Sign up to get started</Text>
 
-      <View style={styles.inputContainer}>        {/* Name input */}
+      <View style={styles.inputContainer}>
+        {/* Name input */}
         <View style={styles.inputWrapper}>
-          <MaterialIcons name="person" size={24} color={colors.textMuted} style={styles.icon} />          <TextInput
+          <MaterialIcons name="person" size={24} color={colors.textMuted} style={styles.icon} />
+          <TextInput
             placeholder="Your Name"
             placeholderTextColor={colors.placeholder}
             value={name}
@@ -49,7 +51,8 @@ const RegisterScreen = ({ navigation }) => {
 
         {/* Email input */}
         <View style={styles.inputWrapper}>
-          <MaterialIcons name="mail" size={24} color={colors.textMuted} style={styles.icon} />          <TextInput
+          <MaterialIcons name="mail" size={24} color={colors.textMuted} style={styles.icon} />
+          <TextInput
             placeholder="Email"
             placeholderTextColor={colors.placeholder}
             value={email}
@@ -62,7 +65,8 @@ const RegisterScreen = ({ navigation }) => {
 
         {/* Password input */}
         <View style={styles.inputWrapper}>
-          <MaterialIcons name="lock" size={24} color={colors.textMuted} style={styles.icon} />          <TextInput
+          <MaterialIcons name="lock" size={24} color={colors.textMuted} style={styles.icon} />
+          <TextInput
             placeholder="Password"
             placeholderTextColor={colors.placeholder}
             value={password}
@@ -71,7 +75,10 @@ const RegisterScreen = ({ navigation }) => {
             style={styles.textInput}
             autoCapitalize="none"
           />
-          <TouchableOpacity onPress={() => togglePasswordVisibility(setIsPasswordVisible)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <TouchableOpacity 
+            onPress={() => togglePasswordVisibility(setIsPasswordVisible)} 
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <MaterialIcons
               name={isPasswordVisible ? "visibility" : "visibility-off"}
               size={24}
@@ -81,7 +88,9 @@ const RegisterScreen = ({ navigation }) => {
         </View>
 
         {/* Error message */}
-        {errorMessage ? <Text style={styles.errorMessage}>{errorMessage}</Text> : null}
+        {errorMessage ? (
+          <Text style={styles.errorMessage}>{errorMessage}</Text>
+        ) : null}
 
         {/* Register button */}
         <TouchableOpacity

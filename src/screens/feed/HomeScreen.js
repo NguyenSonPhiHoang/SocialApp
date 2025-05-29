@@ -39,10 +39,12 @@ const SkeletonPost = () => {
       ])
     ).start();
   }, [shimmerAnim]);
+
   const shimmerColor = shimmerAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [colors.skeletonBase, colors.skeletonHighlight],
   });
+
   return (
     <View style={[styles.postContainer, { backgroundColor: colors.cardBackground }]}>
       <View style={styles.postHeader}>
@@ -67,7 +69,8 @@ const SkeletonPost = () => {
 const CommentItem = ({ comment, fadeAnim }) => {
   const { colors } = useTheme();
   return (
-    <Animated.View style={[styles.commentContainer, { opacity: fadeAnim, backgroundColor: colors.inputBackground }]}>      <Image
+    <Animated.View style={[styles.commentContainer, { opacity: fadeAnim, backgroundColor: colors.inputBackground }]}>
+      <Image
         source={typeof comment.avatar === 'string' ? { uri: comment.avatar } : comment.avatar}
         style={styles.commentAvatar}
       />
@@ -77,7 +80,9 @@ const CommentItem = ({ comment, fadeAnim }) => {
             <Text>{comment.username}</Text>
             <Text>: </Text>
           </Text>
-          <Text style={[styles.commentText, { color: colors.text }]}>{comment.text}</Text>
+          <Text style={[styles.commentText, { color: colors.text }]}>
+            <Text>{comment.text}</Text>
+          </Text>
         </View>
         <Text style={[styles.commentTime, { color: colors.textMuted }]}>
           <Text>{comment.createdAt ? moment(comment.createdAt).fromNow() : 'now'}</Text>
@@ -136,9 +141,11 @@ const PostItem = ({ post, onLike, onAddComment }) => {
       }).start();
     }
   };
+
   return (
     <View style={[styles.postContainer, { backgroundColor: colors.cardBackground }]}>
-      <View style={styles.postHeader}>        <Image 
+      <View style={styles.postHeader}>
+        <Image 
           source={typeof post.avatar === 'string' ? { uri: post.avatar } : post.avatar} 
           style={styles.postAvatar} 
         />
@@ -183,18 +190,19 @@ const PostItem = ({ post, onLike, onAddComment }) => {
               </View>
             </View>
           )}
-        </View>      )}
+        </View>
+      )}
       <View style={[styles.postFooter, { borderTopColor: colors.border }]}>
         <Text style={[styles.likes, { color: colors.textSecondary }]}>
           <Text>{post.likes}</Text>
-          <Text>{' '}</Text>
+          <Text> </Text>
           <Text>{post.likes === 1 ? 'Like' : 'Likes'}</Text>
         </Text>
         {post.comments.length > 0 && (
           <View style={styles.commentsSection}>
             <Text style={[styles.commentCount, { color: colors.textSecondary }]}>
               <Text>{post.comments.length}</Text>
-              <Text>{' '}</Text>
+              <Text> </Text>
               <Text>{post.comments.length === 1 ? 'Comment' : 'Comments'}</Text>
             </Text>
             {(showAllComments ? post.comments : post.comments.slice(0, 3)).map((comment, index) => (
@@ -203,15 +211,17 @@ const PostItem = ({ post, onLike, onAddComment }) => {
                 comment={comment}
                 fadeAnim={commentFadeAnims[index] || new Animated.Value(1)}
               />
-            ))}            {post.comments.length > 3 && (
+            ))}
+            {post.comments.length > 3 && (
               <TouchableOpacity onPress={() => setShowAllComments(!showAllComments)}>
                 <Text style={[styles.viewMoreComments, { color: colors.primary }]}>
-                  {showAllComments ? 'Hide comments' : 'View more comments'}
+                  <Text>{showAllComments ? 'Hide comments' : 'View more comments'}</Text>
                 </Text>
               </TouchableOpacity>
             )}
           </View>
-        )}        <View style={styles.actionButtons}>
+        )}
+        <View style={styles.actionButtons}>
           <TouchableOpacity onPress={handleLikePress}>
             <Animated.View style={[styles.actionButton, { backgroundColor: colors.likeBackground, transform: [{ scale: likeScaleAnim }] }]}>
               <Ionicons
@@ -262,7 +272,9 @@ const HomeScreen = () => {
   // Load posts when component mounts
   useEffect(() => {
     fetchPosts({ setIsLoading, setPosts });
-  }, []);  // Listen for newPost parameter and refresh data
+  }, []);
+
+  // Listen for newPost parameter and refresh data
   useFocusEffect(
     useCallback(() => {
       if (route.params?.newPost) {
@@ -277,7 +289,9 @@ const HomeScreen = () => {
         });
       }
     }, [route.params?.newPost])
-  );  // Listen for tab press refresh
+  );
+
+  // Listen for tab press refresh
   useEffect(() => {
     if (route.params?.refresh) {
       setIsTabRefreshing(true);
@@ -292,6 +306,7 @@ const HomeScreen = () => {
   }, [route.params?.refresh]);
 
   const handleLoadMore = () => {};
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchPosts({ setIsLoading, setPosts }).then(() => {
@@ -310,12 +325,15 @@ const HomeScreen = () => {
   const handleAddCommentPress = (postId, text, fadeAnim) => {
     handleAddComment({ postId, text, fadeAnim, setPosts, userName: 'Current User' });
   };
+
   const renderFooter = () => {
     if (isTabRefreshing && posts.length > 0) {
       return (
         <View style={styles.footerLoading}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={[styles.footerLoadingText, { color: colors.primary }]}>Đang tải...</Text>
+          <Text style={[styles.footerLoadingText, { color: colors.primary }]}>
+            <Text>Đang tải...</Text>
+          </Text>
         </View>
       );
     }
@@ -324,7 +342,9 @@ const HomeScreen = () => {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Text style={[styles.emptyText, { color: colors.textMuted }]}>No posts available</Text>
+      <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+        <Text>No posts available</Text>
+      </Text>
     </View>
   );
 
@@ -337,18 +357,24 @@ const HomeScreen = () => {
       />
     ),
     []
-  );  return (
+  );
+
+  return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.headerBackground }]}>
-        <Text style={[styles.headerTitle, { color: colors.headerText }]}>DeBug Social</Text>        <View style={styles.headerIcons}>
+        <Text style={[styles.headerTitle, { color: colors.headerText }]}>
+          <Text>DeBug Social</Text>
+        </Text>
+        <View style={styles.headerIcons}>
           {(isLoading || isTabRefreshing) && (
             <ActivityIndicator 
               size="small" 
               color={colors.headerText} 
               style={styles.headerLoadingIndicator}
             />
-          )}          <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
+          )}
+          <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
             <Ionicons 
               name={isDarkMode ? 'sunny' : 'moon'} 
               size={24} 
@@ -356,7 +382,9 @@ const HomeScreen = () => {
             />
           </TouchableOpacity>
         </View>
-      </View>{/* FlatList */}
+      </View>
+
+      {/* FlatList */}
       <FlatList
         ref={flatListRef}
         data={posts}
@@ -368,7 +396,8 @@ const HomeScreen = () => {
         ListEmptyComponent={renderEmpty}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1877F2" />
-        }ListHeaderComponent={
+        }
+        ListHeaderComponent={
           <>
             {isLoading && posts.length === 0 && (
               <View>
@@ -409,7 +438,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFF',
     letterSpacing: 1,
-  },  headerIcons: {
+  },
+  headerIcons: {
     flexDirection: 'row',
     gap: 15,
     alignItems: 'center',
@@ -420,6 +450,11 @@ const styles = StyleSheet.create({
   headerIcon: {
     padding: 8,
     backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 20,
+  },
+  themeToggle: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 20,
   },
   storiesContainer: {
@@ -742,7 +777,8 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: '#888',
-  },  listContent: {
+  },
+  listContent: {
     paddingBottom: 20,
   },
   footerLoading: {
