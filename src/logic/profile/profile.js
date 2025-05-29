@@ -14,13 +14,12 @@ export const fetchUserProfileData = async () => {
   // Lấy thông tin user
   const userRef = doc(db, 'users', currentUser.uid);
   const userSnap = await getDoc(userRef);
-
   // Initialize userData and ensure a default structure even if document doesn't exist yet
   let userData = userSnap.exists() ? userSnap.data() : {
       name: '',
       username: '',
       bio: '',
-      avatar: 'https://i.pravatar.cc/150?img=3', // Default avatar
+      avatar: require('../../assets/images/default-avatar.jpg'), // Default avatar
       posts: 0,
       likes: 0,
       email: currentUser.email || '', // Fallback to auth email
@@ -47,7 +46,7 @@ export const fetchUserProfileData = async () => {
       name: userData.name || '',
       username: userData.username || '',
       bio: userData.bio || '',
-      avatar: userData.avatar || 'https://i.pravatar.cc/150?img=3', // Fallback for safety
+      avatar: userData.avatar || require('../../assets/images/default-avatar.jpg'), // Fallback for safety
       posts: userPosts.length, // Ensure this is accurate based on fetched posts
       email: userData.email || currentUser.email || '',
       likes: totalLikes, // Ensure this is accurate based on fetched posts

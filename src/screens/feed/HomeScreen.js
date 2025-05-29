@@ -67,9 +67,8 @@ const SkeletonPost = () => {
 const CommentItem = ({ comment, fadeAnim }) => {
   const { colors } = useTheme();
   return (
-    <Animated.View style={[styles.commentContainer, { opacity: fadeAnim, backgroundColor: colors.inputBackground }]}>
-      <Image
-        source={{ uri: comment.avatar || 'https://randomuser.me/api/portraits/thumb/men/1.jpg' }}
+    <Animated.View style={[styles.commentContainer, { opacity: fadeAnim, backgroundColor: colors.inputBackground }]}>      <Image
+        source={typeof comment.avatar === 'string' ? { uri: comment.avatar } : comment.avatar}
         style={styles.commentAvatar}
       />
       <View style={styles.commentContent}>
@@ -139,8 +138,10 @@ const PostItem = ({ post, onLike, onAddComment }) => {
   };
   return (
     <View style={[styles.postContainer, { backgroundColor: colors.cardBackground }]}>
-      <View style={styles.postHeader}>
-        <Image source={{ uri: post.avatar }} style={styles.postAvatar} />
+      <View style={styles.postHeader}>        <Image 
+          source={typeof post.avatar === 'string' ? { uri: post.avatar } : post.avatar} 
+          style={styles.postAvatar} 
+        />
         <View>
           <Text style={[styles.username, { color: colors.text }]}>
             <Text>{post.username}</Text>

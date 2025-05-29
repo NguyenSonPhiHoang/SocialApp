@@ -9,16 +9,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
 
 const ProfileScreen = ({ route }) => {
-  const theme = useTheme();
-  const [user, setUser] = useState({
+  const theme = useTheme();  const [user, setUser] = useState({
     name: '',
     username: '',
     bio: '',
-    avatar: '',
+    avatar: require('../../assets/images/default-avatar.jpg'),
     posts: 0,
     email: '',
     likes: 0,
-  });  const [posts, setPosts] = useState([]);
+  });const [posts, setPosts] = useState([]);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');  const [saving, setSaving] = useState(false);
@@ -158,9 +157,11 @@ const ProfileScreen = ({ route }) => {
   };
   return (
     <View style={[styles.container, {backgroundColor: theme.colors.background}]}>      {/* Avatar */}
-      <View style={styles.avatarContainer}>
-        <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarTouchable}>
-          <Image source={{ uri: user.avatar }} style={[styles.avatar, {borderColor: theme.colors.primary}]} />
+      <View style={styles.avatarContainer}>        <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarTouchable}>
+          <Image 
+            source={typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar} 
+            style={[styles.avatar, {borderColor: theme.colors.primary}]} 
+          />
           <View style={[styles.cameraIcon, {backgroundColor: theme.colors.primary}]}>
             <MaterialIcons name="camera-alt" size={16} color="#fff" />
           </View>
