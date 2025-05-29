@@ -28,6 +28,7 @@ const ProfileScreen = ({ route }) => {
   const [loading, setLoading] = useState(true);
   const [successModal, setSuccessModal] = useState(false);
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+
   const handleLogout = () => {
     Alert.alert(
       'Xác nhận đăng xuất',
@@ -69,7 +70,7 @@ const ProfileScreen = ({ route }) => {
         </TouchableOpacity>
       ),
     });
-  }, [navigation]);
+  }, [navigation, theme.colors.headerText]);
 
   // Lấy thông tin user và bài viết từ Firestore
   const loadUserData = async () => {
@@ -83,6 +84,7 @@ const ProfileScreen = ({ route }) => {
     }
     setLoading(false);
   };
+
   useEffect(() => {
     loadUserData();
   }, []);
@@ -94,7 +96,9 @@ const ProfileScreen = ({ route }) => {
         loadUserData();
       }
     }, [route?.params?.refresh])
-  );// Hàm lưu thông tin lên Firestore (sử dụng logic chung)
+  );
+
+  // Hàm lưu thông tin lên Firestore (sử dụng logic chung)
   const handleSaveProfile = async () => {
     await handleSave({
       name: editName,
@@ -106,7 +110,9 @@ const ProfileScreen = ({ route }) => {
         setSuccessModal(true);
       },
     });
-  };// Khi mở modal chỉnh sửa, điền thông tin hiện tại
+  };
+
+  // Khi mở modal chỉnh sửa, điền thông tin hiện tại
   const openEditModal = () => {
     setEditName(user.name);
     setEditBio(user.bio);
@@ -170,7 +176,9 @@ const ProfileScreen = ({ route }) => {
     } finally {
       setAvatarModalVisible(false);
     }
-  };  // Hàm cập nhật avatar
+  };
+
+  // Hàm cập nhật avatar
   const updateAvatar = async (imageUri) => {
     try {
       setSaving(true);
@@ -187,23 +195,26 @@ const ProfileScreen = ({ route }) => {
       setSaving(false);
     }
   };
-  // Thay đổi avatar (chỉ nhập URL, có thể tích hợp chọn ảnh sau)
-  // Nếu muốn chọn ảnh từ thiết bị, cần thêm logic upload ảnh lên storage và lấy URL
-    if (loading) {
+
+  if (loading) {
     return (
-      <View style={[{flex:1, justifyContent:'center', alignItems:'center'}, {backgroundColor: theme.colors.background}]}>
+      <View style={[styles.loadingContainer, {backgroundColor: theme.colors.background}]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
+
   // Khi modal thành công đóng, đóng modal và load lại trang ProfileScreen
   const handleSuccessClose = () => {
     setSuccessModal(false);
     loadUserData(); // Load lại toàn bộ dữ liệu ProfileScreen
   };
+
   return (
-    <View style={[styles.container, {backgroundColor: theme.colors.background}]}>      {/* Avatar */}
-      <View style={styles.avatarContainer}>        <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarTouchable}>
+    <View style={[styles.container, {backgroundColor: theme.colors.background}]}>
+      {/* Avatar */}
+      <View style={styles.avatarContainer}>
+        <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarTouchable}>
           <Image 
             source={typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar} 
             style={[styles.avatar, {borderColor: theme.colors.primary}]} 
@@ -213,10 +224,12 @@ const ProfileScreen = ({ route }) => {
           </View>
         </TouchableOpacity>
       </View>
+
       {/* Name, Email, Description */}
       <Text style={[styles.name, {color: theme.colors.text}]}>{user.name}</Text>
       <Text style={[styles.email, {color: theme.colors.textSecondary}]}>{user.email}</Text>
       <Text style={[styles.bio, {color: theme.colors.text}]}>{user.bio}</Text>
+
       {/* Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
@@ -228,13 +241,17 @@ const ProfileScreen = ({ route }) => {
           <Text style={[styles.statLabel, {color: theme.colors.textSecondary}]}>Lượt thích</Text>
         </View>
       </View>
-      {/* Edit Button */}      <TouchableOpacity
+
+      {/* Edit Button */}
+      <TouchableOpacity
         onPress={openEditModal}
         style={[styles.editBtn, {backgroundColor: theme.colors.surface, borderColor: theme.colors.border}]}
       >
         <MaterialIcons name="edit" size={20} color={theme.colors.primary} style={{marginRight: 6}} />
         <Text style={[styles.editBtnText, {color: theme.colors.text}]}>Chỉnh sửa thông tin</Text>
-      </TouchableOpacity>{/* User's Posts Grid */}
+      </TouchableOpacity>
+
+      {/* User's Posts Grid */}
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
@@ -245,14 +262,18 @@ const ProfileScreen = ({ route }) => {
               <Image source={{ uri: item.images[0] }} style={styles.postImage} />
             ) : (
               <View style={[styles.postPlaceholder, {backgroundColor: theme.colors.border}]}>
-                <Text style={[styles.postTitle, {color: theme.colors.text}]}>{item.title?.slice(0, 2) || 'No'}</Text>
+                <Text style={[styles.postTitle, {color: theme.colors.text}]}>
+                  {item.title?.slice(0, 2) || 'No'}
+                </Text>
               </View>
             )}
           </View>
         )}
         contentContainerStyle={{ paddingBottom: 30 }}
         style={{ flexGrow: 0, alignSelf: 'stretch', marginTop: 12 }}
-      />      {/* Edit Modal */}
+      />
+
+      {/* Edit Modal */}
       <Modal
         visible={editModalVisible}
         animationType="slide"
@@ -261,28 +282,46 @@ const ProfileScreen = ({ route }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, {backgroundColor: theme.colors.surface}]}>
-            <Text style={[styles.modalTitle, {color: theme.colors.text}]}>Chỉnh sửa thông tin</Text>            <TextInput
-              style={[styles.input, {backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.text}]}
+            <Text style={[styles.modalTitle, {color: theme.colors.text}]}>Chỉnh sửa thông tin</Text>
+            
+            <TextInput
+              style={[styles.input, {
+                backgroundColor: theme.colors.inputBackground, 
+                borderColor: theme.colors.border, 
+                color: theme.colors.text
+              }]}
               value={editName}
               onChangeText={setEditName}
               placeholder="Tên"
               placeholderTextColor={theme.colors.placeholder}
             />
+            
             <TextInput
-              style={[styles.input, {backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.text}]}
+              style={[styles.input, {
+                backgroundColor: theme.colors.inputBackground, 
+                borderColor: theme.colors.border, 
+                color: theme.colors.text
+              }]}
               value={editBio}
               onChangeText={setEditBio}
               placeholder="Sở thích/Mô tả"
               placeholderTextColor={theme.colors.placeholder}
               multiline
-            /><View style={styles.modalActions}>
+            />
+
+            <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.saveBtn, {backgroundColor: theme.colors.buttonBackground}, saving && { opacity: 0.7 }]}
                 onPress={handleSaveProfile}
                 disabled={saving}
               >
-                {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Lưu</Text>}
+                {saving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.saveBtnText}>Lưu</Text>
+                )}
               </TouchableOpacity>
+              
               <TouchableOpacity
                 style={[styles.cancelBtn, {backgroundColor: theme.colors.border}]}
                 onPress={() => setEditModalVisible(false)}
@@ -293,7 +332,9 @@ const ProfileScreen = ({ route }) => {
             </View>
           </View>
         </View>
-      </Modal>      {/* Modal thông báo thành công */}
+      </Modal>
+
+      {/* Modal thông báo thành công */}
       <Modal
         visible={successModal}
         transparent
@@ -303,12 +344,17 @@ const ProfileScreen = ({ route }) => {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { alignItems: 'center', backgroundColor: theme.colors.surface }]}>
             <MaterialIcons name="check-circle" size={60} color="#4BB543" style={{marginBottom: 12}} />
-            <Text style={[{fontSize: 18, fontWeight: 'bold', marginBottom: 8}, {color: theme.colors.text}]}>Cập nhật thành công!</Text>            <TouchableOpacity
+            <Text style={[styles.successTitle, {color: theme.colors.text}]}>
+              Cập nhật thành công!
+            </Text>
+            
+            <TouchableOpacity
               style={[styles.saveBtn, {backgroundColor: theme.colors.buttonBackground}, { marginTop: 10, width: 120 }]}
               onPress={handleSuccessClose}
             >
               <Text style={styles.saveBtnText}>OK</Text>
-            </TouchableOpacity>          </View>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
 
@@ -321,7 +367,9 @@ const ProfileScreen = ({ route }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.avatarModalContent, {backgroundColor: theme.colors.surface}]}>
-            <Text style={[styles.avatarModalTitle, {color: theme.colors.text}]}>Thay đổi ảnh đại diện</Text>
+            <Text style={[styles.avatarModalTitle, {color: theme.colors.text}]}>
+              Thay đổi ảnh đại diện
+            </Text>
             
             <TouchableOpacity
               style={[styles.avatarOption, {borderBottomColor: theme.colors.border}]}
@@ -340,10 +388,10 @@ const ProfileScreen = ({ route }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.cancelAvatarBtn, {backgroundColor: theme.colors.border}, {backgroundColor: theme.colors.buttonBackground}]}
+              style={[styles.cancelAvatarBtn, {backgroundColor: theme.colors.buttonBackground}]}
               onPress={() => setAvatarModalVisible(false)}
             >
-              <Text style={[styles.cancelAvatarBtnText, {color: theme.colors.text}, ]}>Hủy</Text>
+              <Text style={[styles.cancelAvatarBtnText, {color: '#fff'}]}>Hủy</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -355,7 +403,13 @@ const ProfileScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },  avatarContainer: {
+  },
+  loadingContainer: {
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center'
+  },
+  avatarContainer: {
     alignItems: 'center',
     marginTop: 28,
     marginBottom: 10,
@@ -443,7 +497,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-  },  modalContent: {
+  },
+  modalContent: {
     width: '92%',
     borderRadius: 16,
     padding: 22,
@@ -461,6 +516,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.2,
   },
+  successTitle: {
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    marginBottom: 8
+  },
   input: {
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -473,7 +533,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 10,
-  },  saveBtn: {
+  },
+  saveBtn: {
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 28,
@@ -483,7 +544,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 15,
-  },  cancelBtn: {
+  },
+  cancelBtn: {
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 28,
@@ -507,13 +569,15 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-  },  postPlaceholder: {
+  },
+  postPlaceholder: {
     flex: 1,
     width: '100%',
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-  },  postTitle: {
+  },
+  postTitle: {
     fontWeight: 'bold',
     fontSize: 16,
   },

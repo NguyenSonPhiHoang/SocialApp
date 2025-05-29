@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Alert,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -35,8 +34,10 @@ const LoginScreen = ({ navigation }) => {
       <Text style={styles.subtitle}>Log in to your account</Text>
 
       <View style={styles.inputContainer}>
-        {/* Email input */}        <View style={styles.inputWrapper}>
-          <MaterialIcons name="mail" size={24} color={colors.textMuted} style={styles.icon} />          <TextInput
+        {/* Email input */}
+        <View style={styles.inputWrapper}>
+          <MaterialIcons name="mail" size={24} color={colors.textMuted} style={styles.icon} />
+          <TextInput
             placeholder="Email"
             placeholderTextColor={colors.placeholder}
             value={email}
@@ -49,7 +50,8 @@ const LoginScreen = ({ navigation }) => {
 
         {/* Password input */}
         <View style={styles.inputWrapper}>
-          <MaterialIcons name="lock" size={24} color={colors.textMuted} style={styles.icon} />          <TextInput
+          <MaterialIcons name="lock" size={24} color={colors.textMuted} style={styles.icon} />
+          <TextInput
             placeholder="Password"
             placeholderTextColor={colors.placeholder}
             value={password}
@@ -86,12 +88,12 @@ const LoginScreen = ({ navigation }) => {
         </TouchableOpacity>
 
         {/* Register */}
-        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text style={styles.registerText}>
-            Don’t have an account?{" "}
+        <View style={styles.registerContainer}>
+          <Text style={styles.registerText}>Don't have an account? </Text>
+          <TouchableOpacity onPress={() => navigation.navigate("Register")}>
             <Text style={styles.registerLink}>Sign Up</Text>
-          </Text>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -173,10 +175,15 @@ const getStyles = (colors) => StyleSheet.create({
     marginTop: -10,
     marginBottom: 10,
   },
+  registerContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
   registerText: {
     color: colors.textSecondary,
     textAlign: "center",
-    marginTop: 20,
   },
   registerLink: {
     color: colors.primary,
