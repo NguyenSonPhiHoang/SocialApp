@@ -4,8 +4,12 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { getFirestore, doc, updateDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { fetchUserProfileData, handleSave } from '../../logic/profile/profile';
+import { useTheme } from '../../context/ThemeContext';
+import * as ImagePicker from 'expo-image-picker';
+import { useFocusEffect } from '@react-navigation/native';
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ route }) => {
+  const theme = useTheme();
   const [user, setUser] = useState({
     name: '',
     username: '',
@@ -14,16 +18,13 @@ const ProfileScreen = () => {
     posts: 0,
     email: '',
     likes: 0,
-  });
-  const [posts, setPosts] = useState([]);
+  });  const [posts, setPosts] = useState([]);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editBio, setEditBio] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editAvatar, setEditAvatar] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [editBio, setEditBio] = useState('');  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [successModal, setSuccessModal] = useState(false);
+  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
 
   // Lấy thông tin user và bài viết từ Firestore
   const loadUserData = async () => {
@@ -37,106 +38,174 @@ const ProfileScreen = () => {
     }
     setLoading(false);
   };
-
   useEffect(() => {
     loadUserData();
   }, []);
 
-  // Hàm lưu thông tin lên Firestore (sử dụng logic chung)
+  // Load lại dữ liệu khi có refresh parameter từ navigation
+  useFocusEffect(
+    React.useCallback(() => {
+      if (route?.params?.refresh) {
+        loadUserData();
+      }
+    }, [route?.params?.refresh])
+  );// Hàm lưu thông tin lên Firestore (sử dụng logic chung)
   const handleSaveProfile = async () => {
     await handleSave({
       name: editName,
-      email: editEmail,
       bio: editBio,
-      avatar: editAvatar,
       setSaving,
       setUser: (newUser) => setUser(prev => ({ ...prev, ...newUser })),
       setEditModalVisible: () => {
         setEditModalVisible(false);
         setSuccessModal(true);
-        // Sau khi cập nhật, load lại dữ liệu từ Firestore để đảm bảo đồng bộ UI
-        setTimeout(() => {
-          loadUserData();
-        }, 500);
       },
     });
-  };
-
-  // Khi mở modal chỉnh sửa, điền thông tin hiện tại
+  };// Khi mở modal chỉnh sửa, điền thông tin hiện tại
   const openEditModal = () => {
     setEditName(user.name);
     setEditBio(user.bio);
-    setEditEmail(user.email);
-    setEditAvatar(user.avatar);
     setEditModalVisible(true);
   };
 
+  // Hàm xử lý khi nhấn vào avatar
+  const handleAvatarPress = () => {
+    setAvatarModalVisible(true);
+  };
+
+  // Hàm chụp ảnh
+  const takePhoto = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Lỗi', 'Cần quyền truy cập camera để chụp ảnh');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        await updateAvatar(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể chụp ảnh');
+    } finally {
+      setAvatarModalVisible(false);
+    }
+  };
+
+  // Hàm chọn ảnh từ thư viện
+  const pickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Lỗi', 'Cần quyền truy cập thư viện ảnh để chọn ảnh');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        await updateAvatar(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể chọn ảnh');
+    } finally {
+      setAvatarModalVisible(false);
+    }
+  };  // Hàm cập nhật avatar
+  const updateAvatar = async (imageUri) => {
+    try {
+      setSaving(true);
+      await handleSave({
+        avatar: imageUri,
+        setSaving,
+        setUser: (newUser) => setUser(prev => ({ ...prev, ...newUser })),
+        setEditModalVisible: () => {
+          setSuccessModal(true);
+        },
+      });
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể cập nhật avatar');
+      setSaving(false);
+    }
+  };
   // Thay đổi avatar (chỉ nhập URL, có thể tích hợp chọn ảnh sau)
   // Nếu muốn chọn ảnh từ thiết bị, cần thêm logic upload ảnh lên storage và lấy URL
-
-  if (loading) {
+    if (loading) {
     return (
-      <View style={{flex:1, justifyContent:'center', alignItems:'center'}}>
-        <ActivityIndicator size="large" color="#e1306c" />
+      <View style={[{flex:1, justifyContent:'center', alignItems:'center'}, {backgroundColor: theme.colors.background}]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
-
-  // Khi modal thành công đóng, reload lại dữ liệu từ Firestore để đảm bảo thông tin mới nhất
+  // Khi modal thành công đóng, đóng modal và load lại trang ProfileScreen
   const handleSuccessClose = () => {
     setSuccessModal(false);
-    loadUserData(); // Lấy lại thông tin mới nhất từ Firestore
+    loadUserData(); // Load lại toàn bộ dữ liệu ProfileScreen
   };
-
   return (
-    <View style={styles.container}>
-      {/* Avatar */}
+    <View style={[styles.container, {backgroundColor: theme.colors.background}]}>      {/* Avatar */}
       <View style={styles.avatarContainer}>
-        <Image source={{ uri: user.avatar }} style={styles.avatar} />
+        <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarTouchable}>
+          <Image source={{ uri: user.avatar }} style={[styles.avatar, {borderColor: theme.colors.primary}]} />
+          <View style={[styles.cameraIcon, {backgroundColor: theme.colors.primary}]}>
+            <MaterialIcons name="camera-alt" size={16} color="#fff" />
+          </View>
+        </TouchableOpacity>
       </View>
       {/* Name, Email, Description */}
-      <Text style={styles.name}>{user.name}</Text>
-      <Text style={styles.email}>{user.email}</Text>
-      <Text style={styles.bio}>{user.bio}</Text>
+      <Text style={[styles.name, {color: theme.colors.text}]}>{user.name}</Text>
+      <Text style={[styles.email, {color: theme.colors.textSecondary}]}>{user.email}</Text>
+      <Text style={[styles.bio, {color: theme.colors.text}]}>{user.bio}</Text>
       {/* Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{user.posts}</Text>
-          <Text style={styles.statLabel}>Bài đăng</Text>
+          <Text style={[styles.statNumber, {color: theme.colors.text}]}>{user.posts}</Text>
+          <Text style={[styles.statLabel, {color: theme.colors.textSecondary}]}>Bài đăng</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{user.likes}</Text>
-          <Text style={styles.statLabel}>Lượt thích</Text>
+          <Text style={[styles.statNumber, {color: theme.colors.text}]}>{user.likes}</Text>
+          <Text style={[styles.statLabel, {color: theme.colors.textSecondary}]}>Lượt thích</Text>
         </View>
       </View>
-      {/* Edit Button */}
-      <TouchableOpacity
+      {/* Edit Button */}      <TouchableOpacity
         onPress={openEditModal}
-        style={styles.editBtn}
+        style={[styles.editBtn, {backgroundColor: theme.colors.surface, borderColor: theme.colors.border}]}
       >
-        <MaterialIcons name="edit" size={20} color="#3b82f6" style={{marginRight: 6}} />
-        <Text style={styles.editBtnText}>Chỉnh sửa thông tin</Text>
-      </TouchableOpacity>
-      {/* User's Posts Grid */}
+        <MaterialIcons name="edit" size={20} color={theme.colors.primary} style={{marginRight: 6}} />
+        <Text style={[styles.editBtnText, {color: theme.colors.text}]}>Chỉnh sửa thông tin</Text>
+      </TouchableOpacity>{/* User's Posts Grid */}
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
         numColumns={3}
         renderItem={({ item }) => (
-          <View style={styles.postCard}>
+          <View style={[styles.postCard, {backgroundColor: theme.colors.surface, borderColor: theme.colors.border}]}>
             {item.images && item.images[0] ? (
               <Image source={{ uri: item.images[0] }} style={styles.postImage} />
             ) : (
-              <View style={styles.postPlaceholder}>
-                <Text style={styles.postTitle}>{item.title?.slice(0, 2) || 'No'}</Text>
+              <View style={[styles.postPlaceholder, {backgroundColor: theme.colors.border}]}>
+                <Text style={[styles.postTitle, {color: theme.colors.text}]}>{item.title?.slice(0, 2) || 'No'}</Text>
               </View>
             )}
           </View>
         )}
         contentContainerStyle={{ paddingBottom: 30 }}
         style={{ flexGrow: 0, alignSelf: 'stretch', marginTop: 12 }}
-      />
-      {/* Edit Modal */}
+      />      {/* Edit Modal */}
       <Modal
         visible={editModalVisible}
         animationType="slide"
@@ -144,54 +213,40 @@ const ProfileScreen = () => {
         onRequestClose={() => setEditModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Chỉnh sửa thông tin</Text>
-            <TextInput
-              style={styles.input}
+          <View style={[styles.modalContent, {backgroundColor: theme.colors.surface}]}>
+            <Text style={[styles.modalTitle, {color: theme.colors.text}]}>Chỉnh sửa thông tin</Text>            <TextInput
+              style={[styles.input, {backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.text}]}
               value={editName}
               onChangeText={setEditName}
               placeholder="Tên"
+              placeholderTextColor={theme.colors.placeholder}
             />
             <TextInput
-              style={styles.input}
-              value={editEmail}
-              onChangeText={setEditEmail}
-              placeholder="Email"
-              keyboardType="email-address"
-            />
-            <TextInput
-              style={styles.input}
+              style={[styles.input, {backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.border, color: theme.colors.text}]}
               value={editBio}
               onChangeText={setEditBio}
               placeholder="Sở thích/Mô tả"
+              placeholderTextColor={theme.colors.placeholder}
               multiline
-            />
-            <TextInput
-              style={styles.input}
-              value={editAvatar}
-              onChangeText={setEditAvatar}
-              placeholder="Avatar URL"
-            />
-            <View style={styles.modalActions}>
+            /><View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.saveBtn, saving && { opacity: 0.7 }]}
+                style={[styles.saveBtn, {backgroundColor: theme.colors.buttonBackground}, saving && { opacity: 0.7 }]}
                 onPress={handleSaveProfile}
                 disabled={saving}
               >
                 {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Lưu</Text>}
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={[styles.cancelBtn, {backgroundColor: theme.colors.border}]}
                 onPress={() => setEditModalVisible(false)}
                 disabled={saving}
               >
-                <Text style={styles.cancelBtnText}>Hủy</Text>
+                <Text style={[styles.cancelBtnText, {color: theme.colors.text}]}>Hủy</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
-      </Modal>
-      {/* Modal thông báo thành công */}
+      </Modal>      {/* Modal thông báo thành công */}
       <Modal
         visible={successModal}
         transparent
@@ -199,14 +254,49 @@ const ProfileScreen = () => {
         onRequestClose={handleSuccessClose}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { alignItems: 'center' }]}>
+          <View style={[styles.modalContent, { alignItems: 'center', backgroundColor: theme.colors.surface }]}>
             <MaterialIcons name="check-circle" size={60} color="#4BB543" style={{marginBottom: 12}} />
-            <Text style={{fontSize: 18, fontWeight: 'bold', marginBottom: 8}}>Cập nhật thành công!</Text>
-            <TouchableOpacity
-              style={[styles.saveBtn, { marginTop: 10, width: 120 }]}
+            <Text style={[{fontSize: 18, fontWeight: 'bold', marginBottom: 8}, {color: theme.colors.text}]}>Cập nhật thành công!</Text>            <TouchableOpacity
+              style={[styles.saveBtn, {backgroundColor: theme.colors.buttonBackground}, { marginTop: 10, width: 120 }]}
               onPress={handleSuccessClose}
             >
               <Text style={styles.saveBtnText}>OK</Text>
+            </TouchableOpacity>          </View>
+        </View>
+      </Modal>
+
+      {/* Avatar Selection Modal */}
+      <Modal
+        visible={avatarModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAvatarModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.avatarModalContent, {backgroundColor: theme.colors.surface}]}>
+            <Text style={[styles.avatarModalTitle, {color: theme.colors.text}]}>Thay đổi ảnh đại diện</Text>
+            
+            <TouchableOpacity
+              style={[styles.avatarOption, {borderBottomColor: theme.colors.border}]}
+              onPress={takePhoto}
+            >
+              <MaterialIcons name="camera-alt" size={24} color={theme.colors.primary} />
+              <Text style={[styles.avatarOptionText, {color: theme.colors.text}]}>Chụp ảnh</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.avatarOption}
+              onPress={pickImage}
+            >
+              <MaterialIcons name="photo-library" size={24} color={theme.colors.primary} />
+              <Text style={[styles.avatarOptionText, {color: theme.colors.text}]}>Chọn từ thư viện</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.cancelAvatarBtn, {backgroundColor: theme.colors.border}, {backgroundColor: theme.colors.buttonBackground}]}
+              onPress={() => setAvatarModalVisible(false)}
+            >
+              <Text style={[styles.cancelAvatarBtnText, {color: theme.colors.text}, ]}>Hủy</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -218,36 +308,45 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  avatarContainer: {
+  },  avatarContainer: {
     alignItems: 'center',
     marginTop: 28,
     marginBottom: 10,
+  },
+  avatarTouchable: {
+    position: 'relative',
   },
   avatar: {
     width: 110,
     height: 110,
     borderRadius: 55,
     borderWidth: 3,
-    borderColor: '#e1306c',
     backgroundColor: '#fff',
+  },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   name: {
     fontWeight: 'bold',
     fontSize: 20,
-    color: '#22223b',
     marginTop: 8,
     textAlign: 'center',
   },
   email: {
-    color: '#64748b',
     fontSize: 15,
     marginTop: 2,
     textAlign: 'center',
   },
   bio: {
-    color: '#22223b',
     fontSize: 15,
     marginTop: 4,
     marginBottom: 10,
@@ -270,17 +369,14 @@ const styles = StyleSheet.create({
   statNumber: {
     fontWeight: 'bold',
     fontSize: 18,
-    color: '#22223b',
     marginBottom: 1,
   },
   statLabel: {
-    color: '#64748b',
     fontSize: 13,
     marginTop: 1,
   },
   editBtn: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     borderRadius: 8,
     paddingVertical: 8,
     alignItems: 'center',
@@ -288,12 +384,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
     alignSelf: 'center',
     width: '60%',
   },
   editBtnText: {
-    color: '#22223b',
     fontWeight: 'bold',
     fontSize: 15,
   },
@@ -302,10 +396,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  modalContent: {
+  },  modalContent: {
     width: '92%',
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 22,
     alignItems: 'stretch',
@@ -318,29 +410,23 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#22223b',
     marginBottom: 18,
     textAlign: 'center',
     letterSpacing: 0.2,
   },
   input: {
-    backgroundColor: '#f2f6fc',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#334155',
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e0e7ef',
   },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 10,
-  },
-  saveBtn: {
-    backgroundColor: '#e1306c',
+  },  saveBtn: {
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 28,
@@ -350,16 +436,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 15,
-  },
-  cancelBtn: {
-    backgroundColor: '#e0e7ef',
+  },  cancelBtn: {
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 28,
     alignItems: 'center',
   },
   cancelBtnText: {
-    color: '#334155',
     fontWeight: '700',
     fontSize: 15,
   },
@@ -369,29 +452,63 @@ const styles = StyleSheet.create({
     margin: 2,
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#fff',
   },
   postImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
-  },
-  postPlaceholder: {
+  },  postPlaceholder: {
     flex: 1,
     width: '100%',
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#cbd5e1',
-  },
-  postTitle: {
-    color: '#334155',
+  },  postTitle: {
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  avatarModalContent: {
+    width: '85%',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'stretch',
+    shadowColor: '#22223b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  avatarModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  avatarOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'transparent',
+  },
+  avatarOptionText: {
+    fontSize: 16,
+    marginLeft: 16,
+    fontWeight: '500',
+  },
+  cancelAvatarBtn: {
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  cancelAvatarBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
