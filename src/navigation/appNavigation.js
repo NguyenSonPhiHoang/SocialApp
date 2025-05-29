@@ -51,8 +51,7 @@ export default function AppNavigation() {
             // Refresh Home screen when tab is pressed
             navigation.navigate('Home', { refresh: Date.now() });
           },
-        })}
-      />
+        })}      />
       <Tab.Screen
         name="Post"
         component={PostScreen}
@@ -66,6 +65,12 @@ export default function AppNavigation() {
         options={{
           tabBarLabel: 'Hồ sơ'
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Refresh Profile screen when tab is pressed
+            navigation.navigate('Profile', { refresh: Date.now() });
+          },
+        })}
       />
     </Tab.Navigator>
   );
