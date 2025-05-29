@@ -31,17 +31,9 @@ import {
 } from '../../logic/post/post';
 
 const { width } = Dimensions.get('window');
-const PRIVACY_OPTIONS = [
-  { id: 'public', label: 'Công khai', icon: 'public' },
-  { id: 'friends', label: 'Bạn bè', icon: 'people' },
-  { id: 'private', label: 'Riêng tư', icon: 'lock' },
-];
 
 export default function PostScreen() {
-  const [content, setContent] = useState('');
-  const [images, setImages] = useState([]);
-  const [selectedPrivacy, setSelectedPrivacy] = useState(PRIVACY_OPTIONS[0]);
-  const [showPrivacyDropdown, setShowPrivacyDropdown] = useState(false);
+  const [content, setContent] = useState('');  const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -116,10 +108,9 @@ export default function PostScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Nút đăng bài */}
-          <TouchableOpacity
+          {/* Nút đăng bài */}          <TouchableOpacity
             onPress={() => {
-              handlePost({ content, images, selectedPrivacy, setIsLoading, setShowSuccessModal });
+              handlePost({ content, images, setIsLoading, setShowSuccessModal });
               animateButton(scalePost);
             }}
             disabled={(!content && images.length === 0) || isLoading}
@@ -224,59 +215,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     textAlignVertical: 'top',
-  },
-  privacyContainer: {
-    position: 'relative',
-    marginBottom: 16,
-    zIndex: 1,
-  },
-  privacySelect: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: '#EFF6FF',
-    alignSelf: 'flex-start',
-    minWidth: 150,
-  },
-  privacySelectText: {
-    color: '#2563EB',
-    fontSize: 14,
-    fontWeight: '500',
-    marginHorizontal: 8,
-  },
-  dropdownMenu: {
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    zIndex: 10,
-    minWidth: 150,
-  },
-  dropdownOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    minWidth: 150,
-  },
-  selectedOption: {
-    backgroundColor: '#F5F8FF',
-  },
-  dropdownOptionText: {
-    fontSize: 14,
-    color: '#1F2937',
-    marginLeft: 12,
-    flex: 1,
   },
   checkIcon: {
     marginLeft: 'auto',
