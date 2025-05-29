@@ -1,76 +1,121 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useTheme } from '../../context/ThemeContext';
-import { handleSave } from '../../logic/profile/profile';
-
-const DUMMY_POSTS = [
-  { id: '1', image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80', title: 'Bãi biển', content: 'Check-in biển xanh' },
-  { id: '2', image: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80', title: 'Núi', content: 'Leo núi cuối tuần' },
-  { id: '3', image: 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=400&q=80', title: 'Cafe', content: 'Cà phê sáng chill' },
-  { id: '4', image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=400&q=80', title: 'Đêm', content: 'Thành phố về đêm' },
-  { id: '5', image: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=400&q=80', title: 'Bạn bè', content: 'Đi chơi cùng bạn' },
-  { id: '6', image: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80', title: 'Thể thao', content: 'Chạy bộ buổi sáng' },
-];
+import { getFirestore, doc, updateDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { fetchUserProfileData, handleSave } from '../../logic/profile/profile';
 
 const ProfileScreen = () => {
-  const { colors } = useTheme();
-  const styles = getStyles(colors);
-  
-  // Dummy user data
   const [user, setUser] = useState({
-    name: 'Eytyxia Nguyễn',
-    username: '@EytyxiaNguyeen',
-    bio: 'Lover of code, coffee, and dogs.',
-    avatar: 'https://i.pravatar.cc/150?img=3',
-    followers: 120,
-    following: 180,
-    posts: DUMMY_POSTS.length,
-    email: 'john.doe@email.com',
+    name: '',
+    username: '',
+    bio: '',
+    avatar: '',
+    posts: 0,
+    email: '',
+    likes: 0,
   });
-
-  const [posts, setPosts] = useState(DUMMY_POSTS);
+  const [posts, setPosts] = useState([]);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editName, setEditName] = useState(user.name);
-  const [editBio, setEditBio] = useState(user.bio);
-  const [editEmail, setEditEmail] = useState(user.email);
+  const [editName, setEditName] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [successModal, setSuccessModal] = useState(false);
+
+  // Lấy thông tin user và bài viết từ Firestore
+  const loadUserData = async () => {
+    setLoading(true);
+    try {
+      const { user: userData, posts: userPosts } = await fetchUserProfileData();
+      setUser(userData);
+      setPosts(userPosts);
+    } catch (e) {
+      Alert.alert('Lỗi', 'Không thể tải thông tin người dùng');
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  // Hàm lưu thông tin lên Firestore (sử dụng logic chung)
+  const handleSaveProfile = async () => {
+    await handleSave({
+      name: editName,
+      email: editEmail,
+      bio: editBio,
+      avatar: editAvatar,
+      setSaving,
+      setUser: (newUser) => setUser(prev => ({ ...prev, ...newUser })),
+      setEditModalVisible: () => {
+        setEditModalVisible(false);
+        setSuccessModal(true);
+        // Sau khi cập nhật, load lại dữ liệu từ Firestore để đảm bảo đồng bộ UI
+        setTimeout(() => {
+          loadUserData();
+        }, 500);
+      },
+    });
+  };
+
+  // Khi mở modal chỉnh sửa, điền thông tin hiện tại
+  const openEditModal = () => {
+    setEditName(user.name);
+    setEditBio(user.bio);
+    setEditEmail(user.email);
+    setEditAvatar(user.avatar);
+    setEditModalVisible(true);
+  };
+
+  // Thay đổi avatar (chỉ nhập URL, có thể tích hợp chọn ảnh sau)
+  // Nếu muốn chọn ảnh từ thiết bị, cần thêm logic upload ảnh lên storage và lấy URL
+
+  if (loading) {
+    return (
+      <View style={{flex:1, justifyContent:'center', alignItems:'center'}}>
+        <ActivityIndicator size="large" color="#e1306c" />
+      </View>
+    );
+  }
+
+  // Khi modal thành công đóng, reload lại dữ liệu từ Firestore để đảm bảo thông tin mới nhất
+  const handleSuccessClose = () => {
+    setSuccessModal(false);
+    loadUserData(); // Lấy lại thông tin mới nhất từ Firestore
+  };
 
   return (
     <View style={styles.container}>
-      {/* Header Instagram Style */}
-      <View style={styles.intaHeader}>
-        <View style={styles.avatarBorder}>
-          <Image source={{ uri: user.avatar }} style={styles.intaAvatar} />
+      {/* Avatar */}
+      <View style={styles.avatarContainer}>
+        <Image source={{ uri: user.avatar }} style={styles.avatar} />
+      </View>
+      {/* Name, Email, Description */}
+      <Text style={styles.name}>{user.name}</Text>
+      <Text style={styles.email}>{user.email}</Text>
+      <Text style={styles.bio}>{user.bio}</Text>
+      {/* Stats */}
+      <View style={styles.statsRow}>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{user.posts}</Text>
+          <Text style={styles.statLabel}>Bài đăng</Text>
         </View>
-        <View style={styles.intaStatsWrap}>
-          <View style={styles.intaStatItem}>
-            <Text style={styles.intaStatNumber}>{posts.length}</Text>
-            <Text style={styles.intaStatLabel}>Bài viết</Text>
-          </View>
-          <View style={styles.intaStatItem}>
-            <Text style={styles.intaStatNumber}>{user.followers}</Text>
-            <Text style={styles.intaStatLabel}>Người theo dõi</Text>
-          </View>
-          <View style={styles.intaStatItem}>
-            <Text style={styles.intaStatNumber}>{user.following}</Text>
-            <Text style={styles.intaStatLabel}>Đang theo dõi</Text>
-          </View>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{user.likes}</Text>
+          <Text style={styles.statLabel}>Lượt thích</Text>
         </View>
       </View>
-      <View style={styles.intaNameWrap}>
-        <Text style={styles.intaName}>{user.name}</Text>
-        <Text style={styles.intaEmail}>{user.email}</Text>
-        <Text style={styles.intaBio}>{user.bio}</Text>
-      </View>
-      <TouchableOpacity onPress={() => {
-        setEditName(user.name);
-        setEditBio(user.bio);
-        setEditEmail(user.email);
-        setEditModalVisible(true);
-      }} style={styles.intaEditBtn}>
+      {/* Edit Button */}
+      <TouchableOpacity
+        onPress={openEditModal}
+        style={styles.editBtn}
+      >
         <MaterialIcons name="edit" size={20} color="#3b82f6" style={{marginRight: 6}} />
-        <Text style={styles.intaEditBtnText}>Chỉnh sửa thông tin</Text>
+        <Text style={styles.editBtnText}>Chỉnh sửa thông tin</Text>
       </TouchableOpacity>
       {/* User's Posts Grid */}
       <FlatList
@@ -78,18 +123,18 @@ const ProfileScreen = () => {
         keyExtractor={(item) => item.id}
         numColumns={3}
         renderItem={({ item }) => (
-          <View style={styles.intaPostCard}>
-            {item.image ? (
-              <Image source={{ uri: item.image }} style={styles.intaPostImage} />
+          <View style={styles.postCard}>
+            {item.images && item.images[0] ? (
+              <Image source={{ uri: item.images[0] }} style={styles.postImage} />
             ) : (
-              <View style={styles.intaPostPlaceholder}>
-                <Text style={styles.intaPostTitle}>{item.title?.slice(0, 2) || 'No'}</Text>
+              <View style={styles.postPlaceholder}>
+                <Text style={styles.postTitle}>{item.title?.slice(0, 2) || 'No'}</Text>
               </View>
             )}
           </View>
         )}
         contentContainerStyle={{ paddingBottom: 30 }}
-        style={{ flexGrow: 0 }}
+        style={{ flexGrow: 0, alignSelf: 'stretch', marginTop: 12 }}
       />
       {/* Edit Modal */}
       <Modal
@@ -100,7 +145,8 @@ const ProfileScreen = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Chỉnh sửa thông tin</Text>            <TextInput
+            <Text style={styles.modalTitle}>Chỉnh sửa thông tin</Text>
+            <TextInput
               style={styles.input}
               value={editName}
               onChangeText={setEditName}
@@ -117,13 +163,19 @@ const ProfileScreen = () => {
               style={styles.input}
               value={editBio}
               onChangeText={setEditBio}
-              placeholder="Bio"
+              placeholder="Sở thích/Mô tả"
               multiline
+            />
+            <TextInput
+              style={styles.input}
+              value={editAvatar}
+              onChangeText={setEditAvatar}
+              placeholder="Avatar URL"
             />
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.saveBtn, saving && { opacity: 0.7 }]}
-                onPress={() => handleSave({ editName, editEmail, editBio, setSaving, setUser, setEditModalVisible })}
+                onPress={handleSaveProfile}
                 disabled={saving}
               >
                 {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Lưu</Text>}
@@ -139,6 +191,26 @@ const ProfileScreen = () => {
           </View>
         </View>
       </Modal>
+      {/* Modal thông báo thành công */}
+      <Modal
+        visible={successModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleSuccessClose}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { alignItems: 'center' }]}>
+            <MaterialIcons name="check-circle" size={60} color="#4BB543" style={{marginBottom: 12}} />
+            <Text style={{fontSize: 18, fontWeight: 'bold', marginBottom: 8}}>Cập nhật thành công!</Text>
+            <TouchableOpacity
+              style={[styles.saveBtn, { marginTop: 10, width: 120 }]}
+              onPress={handleSuccessClose}
+            >
+              <Text style={styles.saveBtnText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -148,82 +220,65 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  intaHeader: {
-    flexDirection: 'row',
+  avatarContainer: {
     alignItems: 'center',
-    marginBottom: 8,
-    marginTop: 18,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e5e7eb',
-    paddingBottom: 18,
+    marginTop: 28,
+    marginBottom: 10,
   },
-  avatarBorder: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    borderWidth: 2.5,
+  avatar: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    borderWidth: 3,
     borderColor: '#e1306c',
-    alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: '#fff',
-    marginRight: 18,
   },
-  intaAvatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: '#e0e7ef',
-    borderWidth: 1.5,
-    borderColor: '#fff',
+  name: {
+    fontWeight: 'bold',
+    fontSize: 20,
+    color: '#22223b',
+    marginTop: 8,
+    textAlign: 'center',
   },
-  intaStatsWrap: {
-    flex: 1,
+  email: {
+    color: '#64748b',
+    fontSize: 15,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  bio: {
+    color: '#22223b',
+    fontSize: 15,
+    marginTop: 4,
+    marginBottom: 10,
+    textAlign: 'center',
+    maxWidth: '90%',
+    alignSelf: 'center',
+  },
+  statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'center',
-    marginLeft: 0,
+    width: '92%',
+    marginTop: 10,
+    marginBottom: 10,
+    alignSelf: 'center',
   },
-  intaStatItem: {
+  statItem: {
     alignItems: 'center',
     minWidth: 60,
   },
-  intaStatNumber: {
+  statNumber: {
     fontWeight: 'bold',
-    fontSize: 19,
+    fontSize: 18,
     color: '#22223b',
     marginBottom: 1,
   },
-  intaStatLabel: {
+  statLabel: {
     color: '#64748b',
     fontSize: 13,
     marginTop: 1,
   },
-  intaNameWrap: {
-    marginBottom: 8,
-    marginLeft: 16,
-    marginTop: 2,
-  },
-  intaName: {
-    fontWeight: 'bold',
-    fontSize: 17,
-    color: '#22223b',
-    marginBottom: 1,
-  },
-  intaEmail: {
-    color: '#64748b',
-    fontSize: 14,
-    marginBottom: 1,
-  },
-  intaBio: {
-    color: '#22223b',
-    fontSize: 14,
-    marginTop: 2,
-    marginBottom: 8,
-    maxWidth: '92%',
-  },
-  intaEditBtn: {
+  editBtn: {
     flexDirection: 'row',
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -234,8 +289,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#e5e7eb',
+    alignSelf: 'center',
+    width: '60%',
   },
-  intaEditBtnText: {
+  editBtnText: {
     color: '#22223b',
     fontWeight: 'bold',
     fontSize: 15,
@@ -306,7 +363,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
-  intaPostCard: {
+  postCard: {
     flex: 1,
     aspectRatio: 1,
     margin: 2,
@@ -318,12 +375,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#fff',
   },
-  intaPostImage: {
+  postImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  intaPostPlaceholder: {
+  postPlaceholder: {
     flex: 1,
     width: '100%',
     height: '100%',
@@ -331,206 +388,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#cbd5e1',
   },
-  intaPostTitle: {
+  postTitle: {
     color: '#334155',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-});
-
-const getStyles = (colors) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  intaHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    marginTop: 18,
-    paddingHorizontal: 16,
-    backgroundColor: colors.cardBackground,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.border,
-    paddingBottom: 18,
-  },
-  avatarBorder: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    borderWidth: 2.5,
-    borderColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.cardBackground,
-    marginRight: 18,
-  },
-  intaAvatar: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.cardBackground,
-  },
-  intaStatsWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginLeft: 0,
-  },
-  intaStatItem: {
-    alignItems: 'center',
-    minWidth: 60,
-  },
-  intaStatNumber: {
-    fontWeight: 'bold',
-    fontSize: 19,
-    color: colors.text,
-    marginBottom: 1,
-  },
-  intaStatLabel: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    marginTop: 1,
-  },
-  intaNameWrap: {
-    marginBottom: 8,
-    marginLeft: 16,
-    marginTop: 2,
-    backgroundColor: colors.cardBackground,
-  },
-  intaName: {
-    fontWeight: 'bold',
-    fontSize: 17,
-    color: colors.text,
-    marginBottom: 1,
-  },
-  intaEmail: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    marginBottom: 1,
-  },
-  intaBio: {
-    color: colors.text,
-    fontSize: 14,
-    marginTop: 2,
-    marginBottom: 8,
-    maxWidth: '92%',
-  },
-  intaEditBtn: {
-    flexDirection: 'row',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  intaEditBtnText: {
-    color: colors.text,
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '92%',
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 22,
-    alignItems: 'stretch',
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 18,
-    textAlign: 'center',
-    letterSpacing: 0.2,
-  },
-  input: {
-    backgroundColor: colors.inputBackground,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
-    color: colors.text,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  saveBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-  },
-  saveBtnText: {
-    color: colors.buttonText,
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  cancelBtn: {
-    backgroundColor: colors.surface,
-    borderRadius: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cancelBtnText: {
-    color: colors.text,
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  intaPostCard: {
-    flex: 1,
-    aspectRatio: 1,
-    margin: 2,
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: colors.cardBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  intaPostImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  intaPostPlaceholder: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
-  intaPostTitle: {
-    color: colors.text,
     fontWeight: 'bold',
     fontSize: 16,
   },
