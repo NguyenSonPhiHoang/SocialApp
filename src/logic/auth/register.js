@@ -17,11 +17,13 @@ export const handleRegister = async ({ name, email, password, setIsLoading, setE
   setErrorMessage("");
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    await setDoc(doc(db, "users", user.uid), {
+    const user = userCredential.user;    await setDoc(doc(db, "users", user.uid), {
       uid: user.uid,
       name,
       email,
+      avatar: require('../../assets/images/default-avatar.jpg'),
+      bio: '',
+      username: '',
       createdAt: new Date(),
     });
     Alert.alert("Đăng ký thành công", "Bạn đã đăng ký tài khoản thành công!");

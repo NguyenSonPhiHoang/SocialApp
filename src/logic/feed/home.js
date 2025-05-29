@@ -12,32 +12,30 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
       const data = docSnap.data();
       let userInfo = { name: '', avatar: '', email: '' };
       if (data.userId) {
-        const userDoc = await getDoc(doc(db, 'users', data.userId));
-        if (userDoc.exists()) {
+        const userDoc = await getDoc(doc(db, 'users', data.userId));        if (userDoc.exists()) {
           const u = userDoc.data();
           userInfo = {
             name: u.name || '',
-            avatar: u.avatar || '',
+            avatar: u.avatar || require('../../assets/images/default-avatar.jpg'),
             email: u.email || '',
-          };        }
+          };}
       }      // Process comments to include user info
       const processedComments = [];
       if (data.comments && data.comments.length > 0) {
         for (const comment of data.comments) {
           let commentUserInfo = { name: '', avatar: '' };
           if (comment.userId) {
-            const commentUserDoc = await getDoc(doc(db, 'users', comment.userId));
-            if (commentUserDoc.exists()) {
+            const commentUserDoc = await getDoc(doc(db, 'users', comment.userId));            if (commentUserDoc.exists()) {
               const cu = commentUserDoc.data();
               commentUserInfo = {
                 name: cu.name || '',
-                avatar: cu.avatar || '',
+                avatar: cu.avatar || require('../../assets/images/default-avatar.jpg'),
               };
             }
           }          processedComments.push({
             ...comment,
             username: commentUserInfo.name || comment.username || 'Unknown User',
-            avatar: commentUserInfo.avatar || comment.avatar,
+            avatar: commentUserInfo.avatar || require('../../assets/images/default-avatar.jpg'),
             createdAt: comment.createdAt ? 
               (comment.createdAt.toDate ? comment.createdAt.toDate() : 
                comment.createdAt instanceof Date ? comment.createdAt : 
@@ -50,7 +48,7 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
         ...data,
         images: data.images || [],
         image: data.images && data.images.length > 0 ? data.images[0] : null, // Keep for backward compatibility
-        avatar: userInfo.avatar || '',
+        avatar: userInfo.avatar || require('../../assets/images/default-avatar.jpg'),
         username: userInfo.name || data.userName || data.userEmail || 'Unknown',
         userEmail: userInfo.email || data.userEmail || '',
         comments: processedComments,
@@ -175,11 +173,10 @@ export const handleAddComment = async ({ postId, text, fadeAnim, setPosts, userN
   try {
     const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
     if (userDoc.exists()) {
-      const userData = userDoc.data();
-      currentUserInfo = {
+      const userData = userDoc.data();      currentUserInfo = {
         name: userData.name || '',
-        avatar: userData.avatar || '',
-      };    }
+        avatar: userData.avatar || require('../../assets/images/default-avatar.jpg'),
+      };}
   } catch (error) {
     console.error('Error fetching user info:', error);
   }const timestamp = Date.now();
@@ -188,7 +185,7 @@ export const handleAddComment = async ({ postId, text, fadeAnim, setPosts, userN
     id: `${currentUser.uid}-${timestamp}`,
     userId: currentUser.uid,
     username: currentUserInfo.name || userName || currentUser.displayName || currentUser.email || 'Unknown User',
-    avatar: currentUserInfo.avatar || '',
+    avatar: currentUserInfo.avatar || require('../../assets/images/default-avatar.jpg'),
     text: text.trim(),
     createdAt: new Date(timestamp),
   };
