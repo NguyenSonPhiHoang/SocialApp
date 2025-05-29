@@ -56,7 +56,7 @@ export const takePhoto = async (setImages) => {
   }
 };
 
-export const handlePost = async ({ content, images, selectedPrivacy, setIsLoading, setShowSuccessModal }) => {
+export const handlePost = async ({ content, images, setIsLoading, setShowSuccessModal }) => {
   if (!content && images.length === 0) {
     Alert.alert('Cảnh báo', 'Vui lòng nhập nội dung hoặc chọn ảnh');
     return;
@@ -91,7 +91,6 @@ export const handlePost = async ({ content, images, selectedPrivacy, setIsLoadin
       userName: user.displayName || '',
       content,
       images: imageUrls,
-      privacy: selectedPrivacy.id,
       createdAt: serverTimestamp(),
       likes: 0,
       likedBy: [],
