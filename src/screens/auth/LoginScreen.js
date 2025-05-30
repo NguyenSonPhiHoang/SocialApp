@@ -14,7 +14,9 @@ import Logo from "../../assets/images/logo.png";
 import { useTheme } from '../../context/ThemeContext';
 import { handleLogin, togglePasswordVisibility } from '../../logic/auth/login';
 
+// Màn hình đăng nhập
 const LoginScreen = ({ navigation }) => {
+  // State quản lý email, mật khẩu, trạng thái hiển thị mật khẩu, loading, lỗi
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -30,11 +32,11 @@ const LoginScreen = ({ navigation }) => {
         source={Logo}
         style={styles.logo}
       />
-      <Text style={styles.title}>Welcome Back!</Text>
-      <Text style={styles.subtitle}>Log in to your account</Text>
+      <Text style={styles.title}>Chào mừng bạn trở lại!</Text>
+      <Text style={styles.subtitle}>Đăng nhập vào tài khoản của bạn</Text>
 
       <View style={styles.inputContainer}>
-        {/* Email input */}
+        {/* Ô nhập email */}
         <View style={styles.inputWrapper}>
           <MaterialIcons name="mail" size={24} color={colors.textMuted} style={styles.icon} />
           <TextInput
@@ -48,11 +50,11 @@ const LoginScreen = ({ navigation }) => {
           />
         </View>
 
-        {/* Password input */}
+        {/* Ô nhập mật khẩu */}
         <View style={styles.inputWrapper}>
           <MaterialIcons name="lock" size={24} color={colors.textMuted} style={styles.icon} />
           <TextInput
-            placeholder="Password"
+            placeholder="Mật khẩu"
             placeholderTextColor={colors.placeholder}
             value={password}
             onChangeText={setPassword}
@@ -68,12 +70,12 @@ const LoginScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Error message */}
+        {/* Thông báo lỗi */}
         {errorMessage ? (
           <Text style={styles.errorMessage}>{errorMessage}</Text>
         ) : null}
 
-        {/* Login button */}
+        {/* Nút đăng nhập */}
         <TouchableOpacity
           style={[styles.loginButton, isLoading && {opacity: 0.7}]}
           onPress={() => handleLogin({ email, password, setIsLoading, setErrorMessage, navigation })}
@@ -83,15 +85,15 @@ const LoginScreen = ({ navigation }) => {
           {isLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.loginButtonText}>Log In</Text>
+            <Text style={styles.loginButtonText}>Đăng Nhập</Text>
           )}
         </TouchableOpacity>
 
-        {/* Register */}
+        {/* Đăng ký tài khoản mới */}
         <View style={styles.registerContainer}>
-          <Text style={styles.registerText}>Don't have an account? </Text>
+          <Text style={styles.registerText}>Bạn chưa có tài khoản? </Text>
           <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-            <Text style={styles.registerLink}>Sign Up</Text>
+            <Text style={styles.registerLink}>Đăng Ký</Text>
           </TouchableOpacity>
         </View>
       </View>

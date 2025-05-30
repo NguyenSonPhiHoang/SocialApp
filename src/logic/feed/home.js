@@ -2,9 +2,11 @@ import { db } from '../../../firebase';
 import { collection, getDocs, query, orderBy, doc, getDoc, updateDoc, arrayUnion, increment, arrayRemove, serverTimestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
+// Hàm lấy danh sách bài viết từ Firestore
 export const fetchPosts = async ({ setIsLoading, setPosts }) => {
   setIsLoading(true);
   try {
+    // Lấy danh sách bài viết, sắp xếp theo thời gian tạo mới nhất
     const q = query(collection(db, 'feeds'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     const posts = [];
@@ -12,29 +14,35 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
       const data = docSnap.data();
       let userInfo = { name: '', avatar: '', email: '' };
       if (data.userId) {
-        const userDoc = await getDoc(doc(db, 'users', data.userId));        if (userDoc.exists()) {
+        // Lấy thông tin người dùng cho từng bài viết
+        const userDoc = await getDoc(doc(db, 'users', data.userId));
+        if (userDoc.exists()) {
           const u = userDoc.data();
           userInfo = {
             name: u.name || '',
             avatar: u.avatar || require('../../assets/images/default-avatar.jpg'),
             email: u.email || '',
-          };}
-      }      // Process comments to include user info
+          };
+        }
+      }
+      // Xử lý danh sách bình luận để bổ sung thông tin người dùng
       const processedComments = [];
       if (data.comments && data.comments.length > 0) {
         for (const comment of data.comments) {
           let commentUserInfo = { name: '', avatar: '' };
           if (comment.userId) {
-            const commentUserDoc = await getDoc(doc(db, 'users', comment.userId));            if (commentUserDoc.exists()) {
+            const commentUserDoc = await getDoc(doc(db, 'users', comment.userId));
+            if (commentUserDoc.exists()) {
               const cu = commentUserDoc.data();
               commentUserInfo = {
                 name: cu.name || '',
                 avatar: cu.avatar || require('../../assets/images/default-avatar.jpg'),
               };
             }
-          }          processedComments.push({
+          }
+          processedComments.push({
             ...comment,
-            username: commentUserInfo.name || comment.username || 'Unknown User',
+            username: commentUserInfo.name || comment.username || 'Người dùng',
             avatar: commentUserInfo.avatar || require('../../assets/images/default-avatar.jpg'),
             createdAt: comment.createdAt ? 
               (comment.createdAt.toDate ? comment.createdAt.toDate() : 
@@ -43,13 +51,14 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
               new Date(),
           });
         }
-      }      posts.push({
+      }
+      posts.push({
         id: docSnap.id,
         ...data,
         images: data.images || [],
-        image: data.images && data.images.length > 0 ? data.images[0] : null, // Keep for backward compatibility
+        image: data.images && data.images.length > 0 ? data.images[0] : null, // Giữ lại cho tương thích cũ
         avatar: userInfo.avatar || require('../../assets/images/default-avatar.jpg'),
-        username: userInfo.name || data.userName || data.userEmail || 'Unknown',
+        username: userInfo.name || data.userName || data.userEmail || 'Không rõ',
         userEmail: userInfo.email || data.userEmail || '',
         comments: processedComments,
         likes: data.likes || 0,
@@ -57,7 +66,8 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
         liked: data.likedBy && data.likedBy.includes(getAuth().currentUser?.uid) || false,
         shares: data.shares || 0,
         createdAt: data.createdAt ? data.createdAt.toDate && data.createdAt.toDate() : new Date(),
-      });    }
+      });
+    }
     setPosts(posts);
     return Promise.resolve();
   } catch (error) {
@@ -68,6 +78,7 @@ export const fetchPosts = async ({ setIsLoading, setPosts }) => {
   }
 };
 
+// Hàm xử lý tải thêm bài viết khi cuộn trang
 export const handleLoadMore = ({ isLoading, hasMore, setPage }) => {
   if (!isLoading && hasMore) {
     let timeout;
@@ -76,6 +87,7 @@ export const handleLoadMore = ({ isLoading, hasMore, setPage }) => {
   }
 };
 
+// Hàm làm mới danh sách bài viết
 export const onRefresh = ({ setRefreshing, setPosts, setPage, setHasMore, fetchPosts }) => {
   setRefreshing(true);
   setPosts([]);
@@ -84,15 +96,14 @@ export const onRefresh = ({ setRefreshing, setPosts, setPage, setHasMore, fetchP
   fetchPosts(1).then(() => setRefreshing(false));
 };
 
+// Hàm xử lý like hoặc bỏ like bài viết
 export const handleLike = async ({ postId, setPosts }) => {
   const auth = getAuth();
   const currentUserId = auth.currentUser?.uid;
-  
   if (!currentUserId) {
     return;
   }
-
-  // Optimistic update
+  // Cập nhật trên UI
   setPosts((prevPosts) =>
     prevPosts.map((post) => {
       if (post.id === postId) {
@@ -100,7 +111,6 @@ export const handleLike = async ({ postId, setPosts }) => {
         const newLikedBy = isCurrentlyLiked 
           ? post.likedBy.filter(uid => uid !== currentUserId)
           : [...post.likedBy, currentUserId];
-        
         return {
           ...post,
           liked: !isCurrentlyLiked,
@@ -111,25 +121,22 @@ export const handleLike = async ({ postId, setPosts }) => {
       return post;
     })
   );
-
   try {
     const postRef = doc(db, 'feeds', postId);
-    
-    // Get current post data to check if user already liked
+    // Lấy dữ liệu bài viết hiện tại để kiểm tra trạng thái like
     const postDoc = await getDoc(postRef);
     if (postDoc.exists()) {
       const postData = postDoc.data();
       const likedBy = postData.likedBy || [];
       const isLiked = likedBy.includes(currentUserId);
-      
       if (isLiked) {
-        // Remove like
+        // Bỏ like
         await updateDoc(postRef, {
           likedBy: arrayRemove(currentUserId),
           likes: increment(-1),
         });
       } else {
-        // Add like
+        // Thêm like
         await updateDoc(postRef, {
           likedBy: arrayUnion(currentUserId),
           likes: increment(1),
@@ -137,7 +144,7 @@ export const handleLike = async ({ postId, setPosts }) => {
       }
     }
   } catch (error) {
-    // Revert optimistic update on error
+    // Nếu lỗi, hoàn tác cập nhật
     setPosts((prevPosts) =>
       prevPosts.map((post) => {
         if (post.id === postId) {
@@ -145,7 +152,6 @@ export const handleLike = async ({ postId, setPosts }) => {
           const newLikedBy = isCurrentlyLiked 
             ? post.likedBy.filter(uid => uid !== currentUserId)
             : [...post.likedBy, currentUserId];
-          
           return {
             ...post,
             liked: !isCurrentlyLiked,
@@ -156,41 +162,41 @@ export const handleLike = async ({ postId, setPosts }) => {
         return post;
       })
     );
-    console.error('Error updating like:', error);
+    console.error('Lỗi khi cập nhật like:', error);
   }
 };
 
+// Hàm thêm bình luận vào bài viết
 export const handleAddComment = async ({ postId, text, fadeAnim, setPosts, userName }) => {
   const auth = getAuth();
   const currentUser = auth.currentUser;
-  
   if (!currentUser || !text.trim()) {
     return;
   }
-
-  // Get current user info from Firestore
+  // Lấy thông tin người dùng hiện tại từ Firestore
   let currentUserInfo = { name: '', avatar: '' };
   try {
     const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
     if (userDoc.exists()) {
-      const userData = userDoc.data();      currentUserInfo = {
+      const userData = userDoc.data();
+      currentUserInfo = {
         name: userData.name || '',
         avatar: userData.avatar || require('../../assets/images/default-avatar.jpg'),
-      };}
+      };
+    }
   } catch (error) {
-    console.error('Error fetching user info:', error);
-  }const timestamp = Date.now();
-  
+    console.error('Lỗi khi lấy thông tin user:', error);
+  }
+  const timestamp = Date.now();
   const newComment = {
     id: `${currentUser.uid}-${timestamp}`,
     userId: currentUser.uid,
-    username: currentUserInfo.name || userName || currentUser.displayName || currentUser.email || 'Unknown User',
+    username: currentUserInfo.name || userName || currentUser.displayName || currentUser.email || 'Người dùng',
     avatar: currentUserInfo.avatar || require('../../assets/images/default-avatar.jpg'),
     text: text.trim(),
     createdAt: new Date(timestamp),
   };
-
-  // Optimistic update
+  // Cập nhật trên UI
   setPosts((prevPosts) =>
     prevPosts.map((post) =>
       post.id === postId
@@ -200,12 +206,14 @@ export const handleAddComment = async ({ postId, text, fadeAnim, setPosts, userN
           }
         : post
     )
-  );  try {
+  );
+  try {
     const postRef = doc(db, 'feeds', postId);
     await updateDoc(postRef, {
       comments: arrayUnion(newComment),
-    });  } catch (error) {
-    // Revert optimistic update on error
+    });
+  } catch (error) {
+    // Nếu lỗi, hoàn tác cập nhật
     setPosts((prevPosts) =>
       prevPosts.map((post) =>
         post.id === postId
