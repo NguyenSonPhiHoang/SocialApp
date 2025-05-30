@@ -1,9 +1,10 @@
 import { getFirestore, doc, updateDoc, getDoc, collection, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import { useState, useEffect } from 'react';
-import { Alert } from 'react-native';
+import { useState, useEffect, useLayoutEffect } from 'react';
+import { Alert, TouchableOpacity } from 'react-native';
 import { signOut } from 'firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
+import { MaterialIcons } from '@expo/vector-icons';
 
 // Hàm lấy thông tin cá nhân và thống kê của người dùng từ Firestore
 export const fetchUserProfileData = async () => {
@@ -147,6 +148,17 @@ export function useProfileLogic({ navigation, route }) {
       { cancelable: true }
     );
   };
+
+  // Đảm bảo nút logout xuất hiện trên header
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={handleLogout} style={{ marginRight: 15 }}>
+          <MaterialIcons name="logout" size={24} color={navigation?.dangerouslyGetState ? '#000' : '#fff'} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
 
   // Lấy dữ liệu user và bài viết
   const loadUserData = async () => {

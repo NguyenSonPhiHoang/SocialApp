@@ -16,6 +16,12 @@ export const handleRegister = async ({ name, email, password, setIsLoading, setE
     Alert.alert("Thông báo", "Vui lòng nhập đầy đủ tên, email và mật khẩu.");
     return;
   }
+    // Kiểm tra định dạng email, chỉ chấp nhận @gmail.com
+  const emailRegex = /^[\w.-]+@gmail\.com$/;
+  if (!emailRegex.test(email)) {
+    Alert.alert("Email không hợp lệ", "Chúng tôi chỉ chấp nhận @gmail.com ở thời điểm hiện tại.");
+    return;
+  }
   setIsLoading(true);
   setErrorMessage("");
   try {
