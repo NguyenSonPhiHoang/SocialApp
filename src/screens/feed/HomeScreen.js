@@ -18,12 +18,13 @@ import { useFocusEffect, useRoute } from '@react-navigation/native';
 import { useTheme } from '../../context/ThemeContext';
 import { fetchPosts, handleLike, handleAddComment } from '../../logic/feed/home';
 
-// Skeleton Loading Component with Shimmer Effect
+// Component Skeleton Loading với hiệu ứng shimmer cho bài viết
 const SkeletonPost = () => {
   const { colors } = useTheme();
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Khởi động hiệu ứng shimmer
     Animated.loop(
       Animated.sequence([
         Animated.timing(shimmerAnim, {
@@ -40,6 +41,7 @@ const SkeletonPost = () => {
     ).start();
   }, [shimmerAnim]);
 
+  // Tạo màu shimmer động
   const shimmerColor = shimmerAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [colors.skeletonBase, colors.skeletonHighlight],
@@ -65,7 +67,7 @@ const SkeletonPost = () => {
   );
 };
 
-// Comment Item Component
+// Component Item Bình luận
 const CommentItem = ({ comment, fadeAnim }) => {
   const { colors } = useTheme();
   return (
@@ -92,7 +94,7 @@ const CommentItem = ({ comment, fadeAnim }) => {
   );
 };
 
-// Post Item Component
+// Component Item Bài viết
 const PostItem = ({ post, onLike, onAddComment }) => {
   const { colors } = useTheme();
   const [commentText, setCommentText] = useState('');
@@ -100,13 +102,13 @@ const PostItem = ({ post, onLike, onAddComment }) => {
   const likeScaleAnim = useRef(new Animated.Value(1)).current;
   const commentFadeAnims = useRef([]).current;
 
-  // Sync commentFadeAnims with current comments
+  // Đồng bộ commentFadeAnims với các bình luận hiện tại
   useEffect(() => {
-    // Ensure we have animation values for all comments
+    // Đảm bảo chúng ta có giá trị animation cho tất cả các bình luận
     while (commentFadeAnims.length < post.comments.length) {
       commentFadeAnims.push(new Animated.Value(1));
     }
-    // Remove excess animation values if comments were removed
+    // Xóa các giá trị animation thừa nếu bình luận bị xóa
     if (commentFadeAnims.length > post.comments.length) {
       commentFadeAnims.splice(post.comments.length);
     }
@@ -221,7 +223,7 @@ const PostItem = ({ post, onLike, onAddComment }) => {
             )}
           </View>
         )}
-        <View style={styles.actionButtons}>
+        <View style={[styles.actionButtons, { borderTopColor: colors.border }]}>
           <TouchableOpacity onPress={handleLikePress}>
             <Animated.View style={[styles.actionButton, { backgroundColor: colors.likeBackground, transform: [{ scale: likeScaleAnim }] }]}>
               <Ionicons
@@ -244,7 +246,7 @@ const PostItem = ({ post, onLike, onAddComment }) => {
         <View style={[styles.commentInputContainer, { borderColor: colors.border, backgroundColor: colors.inputBackground }]}>
           <TextInput
             style={[styles.commentInput, { color: colors.text }]}
-            placeholder="Write a comment..."
+            placeholder="Viết bình luận..."
             placeholderTextColor={colors.placeholder}
             value={commentText}
             onChangeText={setCommentText}
@@ -269,20 +271,20 @@ const HomeScreen = () => {
   const route = useRoute();
   const flatListRef = useRef(null);
 
-  // Load posts when component mounts
+  // Tải bài viết khi component được gắn vào màn hình
   useEffect(() => {
     fetchPosts({ setIsLoading, setPosts });
   }, []);
 
-  // Listen for newPost parameter and refresh data
+  // Lắng nghe tham số newPost và làm mới dữ liệu
   useFocusEffect(
     useCallback(() => {
       if (route.params?.newPost) {
-        // Reset the parameter to avoid infinite refresh
+        // Đặt lại tham số để tránh làm mới vô hạn
         route.params.newPost = false;
-        // Refresh posts
+        // Làm mới bài viết
         fetchPosts({ setIsLoading, setPosts }).then(() => {
-          // Scroll to top after loading new post
+          // Cuộn lên đầu sau khi tải bài viết mới
           setTimeout(() => {
             flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
           }, 500);
@@ -291,13 +293,13 @@ const HomeScreen = () => {
     }, [route.params?.newPost])
   );
 
-  // Listen for tab press refresh
+  // Lắng nghe sự kiện nhấn tab để làm mới
   useEffect(() => {
     if (route.params?.refresh) {
       setIsTabRefreshing(true);
       fetchPosts({ setIsLoading: () => {}, setPosts }).then(() => {
         setIsTabRefreshing(false);
-        // Scroll to top after tab refresh
+        // Cuộn lên đầu sau khi làm mới tab
         setTimeout(() => {
           flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
         }, 300);
@@ -311,7 +313,7 @@ const HomeScreen = () => {
     setRefreshing(true);
     fetchPosts({ setIsLoading, setPosts }).then(() => {
       setRefreshing(false);
-      // Scroll to top after pull to refresh
+      // Cuộn lên đầu sau khi kéo để làm mới
       setTimeout(() => {
         flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       }, 300);
@@ -343,7 +345,7 @@ const HomeScreen = () => {
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-        <Text>No posts available</Text>
+        <Text>Không có bài viết nào</Text>
       </Text>
     </View>
   );
@@ -612,7 +614,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 280,
   },
-  // Multiple images layout styles
+  // Các kiểu dáng cho nhiều hình ảnh
   postImagesContainer: {
     borderRadius: 12,
     overflow: 'hidden',

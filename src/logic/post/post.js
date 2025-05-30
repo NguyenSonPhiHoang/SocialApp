@@ -1,4 +1,3 @@
-// Post creation logic
 import { Alert, Platform, Animated } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { db } from '../../../firebase';
@@ -6,6 +5,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 
+// Hàm chọn nhiều ảnh từ thư viện
 export const pickImages = async (setImages) => {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== 'granted') {
@@ -23,6 +23,7 @@ export const pickImages = async (setImages) => {
   }
 };
 
+// Hàm chụp ảnh bằng camera
 export const takePhoto = async (setImages) => {
   if (Platform.OS !== 'android') {
     Alert.alert('Lỗi', 'Tính năng này hiện chỉ hỗ trợ trên Android với custom client.');
@@ -56,6 +57,7 @@ export const takePhoto = async (setImages) => {
   }
 };
 
+// Hàm xử lý đăng bài mới
 export const handlePost = async ({ content, images, setIsLoading, setShowSuccessModal }) => {
   if (!content && images.length === 0) {
     Alert.alert('Cảnh báo', 'Vui lòng nhập nội dung hoặc chọn ảnh');
@@ -63,7 +65,7 @@ export const handlePost = async ({ content, images, setIsLoading, setShowSuccess
   }
   setIsLoading(true);
   try {
-    // Get current user
+    // Lấy thông tin người dùng hiện tại
     const auth = getAuth();
     const user = auth.currentUser;
     if (!user) {
@@ -71,7 +73,7 @@ export const handlePost = async ({ content, images, setIsLoading, setShowSuccess
       Alert.alert('Lỗi', 'Bạn cần đăng nhập để đăng bài.');
       return;
     }
-    // Upload images to Firebase Storage and get URLs
+    // Tải ảnh lên Firebase Storage và lấy URL
     let imageUrls = [];
     if (images.length > 0) {
       const storage = getStorage();
@@ -84,7 +86,8 @@ export const handlePost = async ({ content, images, setIsLoading, setShowSuccess
         const url = await getDownloadURL(storageRef);
         imageUrls.push(url);
       }
-    }    // Save post to Firestore
+    }
+    // Lưu bài viết vào Firestore
     await addDoc(collection(db, 'feeds'), {
       userId: user.uid,
       userEmail: user.email,
@@ -105,17 +108,19 @@ export const handlePost = async ({ content, images, setIsLoading, setShowSuccess
   }
 };
 
+// Hàm xác nhận khi đăng bài thành công
 export const handleSuccessConfirm = ({ setShowSuccessModal, setContent, setImages, navigation }) => {
   setShowSuccessModal(false);
   setContent('');
   setImages([]);
-  // Navigate to Home with newPost parameter to trigger refresh
+  // Chuyển về trang Home và làm mới danh sách bài viết
   navigation.navigate('HomeTabs', { 
     screen: 'Home', 
     params: { newPost: true } 
   });
 };
 
+// Hàm hiệu ứng nút bấm
 export const animateButton = (scale) => {
   Animated.sequence([
     Animated.timing(scale, {
@@ -131,6 +136,7 @@ export const animateButton = (scale) => {
   ]).start();
 };
 
+// Hàm xóa ảnh khỏi danh sách đã chọn
 export const removeImage = (uriToRemove, setImages) => {
   setImages(prev => prev.filter(uri => uri !== uriToRemove));
 };

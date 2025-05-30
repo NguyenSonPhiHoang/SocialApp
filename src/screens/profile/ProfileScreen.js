@@ -1,217 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, FlatList, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { getFirestore, doc, updateDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { getAuth, signOut } from 'firebase/auth';
-import { fetchUserProfileData, handleSave } from '../../logic/profile/profile';
 import { useTheme } from '../../context/ThemeContext';
-import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { 
+  useProfileLogic 
+} from '../../logic/profile/profile';
 
+// Màn hình hồ sơ cá nhân chỉ xử lý giao diện, toàn bộ logic được tách sang logic/profile/profile.js
 const ProfileScreen = ({ route }) => {
   const theme = useTheme();
   const navigation = useNavigation();
-  const [user, setUser] = useState({
-    name: '',
-    username: '',
-    bio: '',
-    avatar: require('../../assets/images/default-avatar.jpg'),
-    posts: 0,
-    email: '',
-    likes: 0,
-  });
-  const [posts, setPosts] = useState([]);
-  const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editBio, setEditBio] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [successModal, setSuccessModal] = useState(false);
-  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
-
-  const handleLogout = () => {
-    Alert.alert(
-      'Xác nhận đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất không?',
-      [
-        {
-          text: 'Hủy',
-          style: 'cancel'
-        },
-        {
-          text: 'Đăng xuất',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut(getAuth());
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Auth' }]
-              });
-            } catch (error) {
-              Alert.alert('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại.');
-            }
-          }
-        }
-      ],
-      { cancelable: true }
-    );
-  };
-
-  // Set up navigation options with logout button
-  React.useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity 
-          onPress={handleLogout}
-          style={{ marginRight: 15 }}
-        >
-          <MaterialIcons name="logout" size={24} color={theme.colors.headerText} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, theme.colors.headerText]);
-
-  // Lấy thông tin user và bài viết từ Firestore
-  const loadUserData = async () => {
-    setLoading(true);
-    try {
-      const { user: userData, posts: userPosts } = await fetchUserProfileData();
-      setUser(userData);
-      setPosts(userPosts);
-    } catch (e) {
-      Alert.alert('Lỗi', 'Không thể tải thông tin người dùng');
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  // Load lại dữ liệu khi có refresh parameter từ navigation
-  useFocusEffect(
-    React.useCallback(() => {
-      if (route?.params?.refresh) {
-        loadUserData();
-      }
-    }, [route?.params?.refresh])
-  );
-
-  // Hàm lưu thông tin lên Firestore (sử dụng logic chung)
-  const handleSaveProfile = async () => {
-    await handleSave({
-      name: editName,
-      bio: editBio,
-      setSaving,
-      setUser: (newUser) => setUser(prev => ({ ...prev, ...newUser })),
-      setEditModalVisible: () => {
-        setEditModalVisible(false);
-        setSuccessModal(true);
-      },
-    });
-  };
-
-  // Khi mở modal chỉnh sửa, điền thông tin hiện tại
-  const openEditModal = () => {
-    setEditName(user.name);
-    setEditBio(user.bio);
-    setEditModalVisible(true);
-  };
-
-  // Hàm xử lý khi nhấn vào avatar
-  const handleAvatarPress = () => {
-    setAvatarModalVisible(true);
-  };
-
-  // Hàm chụp ảnh
-  const takePhoto = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      
-      if (permissionResult.granted === false) {
-        Alert.alert('Lỗi', 'Cần quyền truy cập camera để chụp ảnh');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-      });
-
-      if (!result.canceled) {
-        await updateAvatar(result.assets[0].uri);
-      }
-    } catch (error) {
-      Alert.alert('Lỗi', 'Không thể chụp ảnh');
-    } finally {
-      setAvatarModalVisible(false);
-    }
-  };
-
-  // Hàm chọn ảnh từ thư viện
-  const pickImage = async () => {
-    try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (permissionResult.granted === false) {
-        Alert.alert('Lỗi', 'Cần quyền truy cập thư viện ảnh để chọn ảnh');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.7,
-      });
-
-      if (!result.canceled) {
-        await updateAvatar(result.assets[0].uri);
-      }
-    } catch (error) {
-      Alert.alert('Lỗi', 'Không thể chọn ảnh');
-    } finally {
-      setAvatarModalVisible(false);
-    }
-  };
-
-  // Hàm cập nhật avatar
-  const updateAvatar = async (imageUri) => {
-    try {
-      setSaving(true);
-      await handleSave({
-        avatar: imageUri,
-        setSaving,
-        setUser: (newUser) => setUser(prev => ({ ...prev, ...newUser })),
-        setEditModalVisible: () => {
-          setSuccessModal(true);
-        },
-      });
-    } catch (error) {
-      Alert.alert('Lỗi', 'Không thể cập nhật avatar');
-      setSaving(false);
-    }
-  };
+  // Sử dụng custom hook để lấy toàn bộ logic và state liên quan đến profile
+  const {
+    user, posts, loading, saving,
+    editModalVisible, setEditModalVisible,
+    editName, setEditName,
+    editBio, setEditBio,
+    successModal, setSuccessModal,
+    avatarModalVisible, setAvatarModalVisible,
+    handleLogout, openEditModal, handleAvatarPress,
+    handleSaveProfile, handleSuccessClose,
+    takePhoto, pickImage, loadUserData
+  } = useProfileLogic({ navigation, route });
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, {backgroundColor: theme.colors.background}]}>
+      <View style={[styles.loadingContainer, {backgroundColor: theme.colors.background}]}> 
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
-  // Khi modal thành công đóng, đóng modal và load lại trang ProfileScreen
-  const handleSuccessClose = () => {
-    setSuccessModal(false);
-    loadUserData(); // Load lại toàn bộ dữ liệu ProfileScreen
-  };
-
   return (
-    <View style={[styles.container, {backgroundColor: theme.colors.background}]}>
+    <View style={[styles.container, {backgroundColor: theme.colors.background}]}> 
       {/* Avatar */}
       <View style={styles.avatarContainer}>
         <TouchableOpacity onPress={handleAvatarPress} style={styles.avatarTouchable}>
@@ -219,18 +41,18 @@ const ProfileScreen = ({ route }) => {
             source={typeof user.avatar === 'string' ? { uri: user.avatar } : user.avatar} 
             style={[styles.avatar, {borderColor: theme.colors.primary}]} 
           />
-          <View style={[styles.cameraIcon, {backgroundColor: theme.colors.primary}]}>
+          <View style={[styles.cameraIcon, {backgroundColor: theme.colors.primary}]}> 
             <MaterialIcons name="camera-alt" size={16} color="#fff" />
           </View>
         </TouchableOpacity>
       </View>
 
-      {/* Name, Email, Description */}
+      {/* Tên, Email, Mô tả */}
       <Text style={[styles.name, {color: theme.colors.text}]}>{user.name}</Text>
       <Text style={[styles.email, {color: theme.colors.textSecondary}]}>{user.email}</Text>
       <Text style={[styles.bio, {color: theme.colors.text}]}>{user.bio}</Text>
 
-      {/* Stats */}
+      {/* Thống kê */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <Text style={[styles.statNumber, {color: theme.colors.text}]}>{user.posts}</Text>
@@ -242,7 +64,7 @@ const ProfileScreen = ({ route }) => {
         </View>
       </View>
 
-      {/* Edit Button */}
+      {/* Nút Chỉnh sửa */}
       <TouchableOpacity
         onPress={openEditModal}
         style={[styles.editBtn, {backgroundColor: theme.colors.surface, borderColor: theme.colors.border}]}
@@ -251,7 +73,7 @@ const ProfileScreen = ({ route }) => {
         <Text style={[styles.editBtnText, {color: theme.colors.text}]}>Chỉnh sửa thông tin</Text>
       </TouchableOpacity>
 
-      {/* User's Posts Grid */}
+      {/* Danh sách bài viết của người dùng */}
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id}
@@ -273,7 +95,7 @@ const ProfileScreen = ({ route }) => {
         style={{ flexGrow: 0, alignSelf: 'stretch', marginTop: 12 }}
       />
 
-      {/* Edit Modal */}
+      {/* Modal chỉnh sửa thông tin */}
       <Modal
         visible={editModalVisible}
         animationType="slide"
@@ -358,7 +180,7 @@ const ProfileScreen = ({ route }) => {
         </View>
       </Modal>
 
-      {/* Avatar Selection Modal */}
+      {/* Modal chọn ảnh đại diện */}
       <Modal
         visible={avatarModalVisible}
         transparent

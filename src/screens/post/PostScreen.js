@@ -32,7 +32,9 @@ import {
 
 const { width } = Dimensions.get('window');
 
+// Màn hình đăng bài mới
 export default function PostScreen() {
+  // State quản lý nội dung, ảnh, trạng thái loading, modal, v.v.
   const [content, setContent] = useState('');
   const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);

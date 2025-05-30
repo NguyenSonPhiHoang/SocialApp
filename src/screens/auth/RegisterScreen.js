@@ -15,7 +15,9 @@ import Logo from "../../assets/images/logo.png";
 import { useTheme } from '../../context/ThemeContext';
 import { handleRegister, togglePasswordVisibility } from '../../logic/auth/register';
 
+// Màn hình đăng ký tài khoản mới
 const RegisterScreen = ({ navigation }) => {
+  // State quản lý tên, email, mật khẩu, trạng thái hiển thị mật khẩu, loading, lỗi
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,15 +34,15 @@ const RegisterScreen = ({ navigation }) => {
         source={Logo}
         style={styles.logo}
       />
-      <Text style={styles.title}>Create Account</Text>
-      <Text style={styles.subtitle}>Sign up to get started</Text>
+      <Text style={styles.title}>Tạo Tài Khoản</Text>
+      <Text style={styles.subtitle}>Đăng ký để bắt đầu</Text>
 
       <View style={styles.inputContainer}>
-        {/* Name input */}
+        {/* Ô nhập tên */}
         <View style={styles.inputWrapper}>
           <MaterialIcons name="person" size={24} color={colors.textMuted} style={styles.icon} />
           <TextInput
-            placeholder="Your Name"
+            placeholder="Tên của bạn"
             placeholderTextColor={colors.placeholder}
             value={name}
             onChangeText={setName}
@@ -49,7 +51,7 @@ const RegisterScreen = ({ navigation }) => {
           />
         </View>
 
-        {/* Email input */}
+        {/* Ô nhập email */}
         <View style={styles.inputWrapper}>
           <MaterialIcons name="mail" size={24} color={colors.textMuted} style={styles.icon} />
           <TextInput
@@ -63,11 +65,11 @@ const RegisterScreen = ({ navigation }) => {
           />
         </View>
 
-        {/* Password input */}
+        {/* Ô nhập mật khẩu */}
         <View style={styles.inputWrapper}>
           <MaterialIcons name="lock" size={24} color={colors.textMuted} style={styles.icon} />
           <TextInput
-            placeholder="Password"
+            placeholder="Mật khẩu"
             placeholderTextColor={colors.placeholder}
             value={password}
             onChangeText={setPassword}
@@ -87,12 +89,12 @@ const RegisterScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Error message */}
+        {/* Thông báo lỗi */}
         {errorMessage ? (
           <Text style={styles.errorMessage}>{errorMessage}</Text>
         ) : null}
 
-        {/* Register button */}
+        {/* Nút đăng ký */}
         <TouchableOpacity
           style={[styles.loginButton, isLoading && { opacity: 0.7 }]}
           onPress={() => handleRegister({ name, email, password, setIsLoading, setErrorMessage, navigation })}
@@ -102,14 +104,14 @@ const RegisterScreen = ({ navigation }) => {
           {isLoading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.loginButtonText}>Sign Up</Text>
+            <Text style={styles.loginButtonText}>Đăng Ký</Text>
           )}
         </TouchableOpacity>
 
-        {/* Navigate to Login */}
+        {/* Chuyển tới màn hình đăng nhập */}
         <TouchableOpacity onPress={() => navigation.navigate("Login")}>
           <Text style={styles.registerText}>
-            Already have an account? <Text style={styles.registerLink}>Log In</Text>
+            Đã có tài khoản? <Text style={styles.registerLink}>Đăng Nhập</Text>
           </Text>
         </TouchableOpacity>
       </View>
